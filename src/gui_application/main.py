@@ -1,5 +1,5 @@
 from datareader import DataReader
-from visualizer import Visualize
+import visualizer as visual
 import datetime
 import argparse
 import os
@@ -25,12 +25,12 @@ def cli_argument_parser():
                         help='Path to an images',
                         type=str,
                         dest='images_path',
-                        default="../DLMini/data/imgs_MOV03478/")
+                        default="D:/SEMYON/UNN/ITLAB/DLMini/data/imgs_MOV03478")
     parser.add_argument('-l', '--layout',
                         help='Path to a dir of layout',
                         type=str,
                         dest='dir_layout_path',
-                        default="../DLMini/layout/mov03478.txt")
+                        default="D:/SEMYON/UNN/ITLAB/DLMini/layout/mov03478.txt")
     parser.add_argument('-m', '--model',
                         help='Path to a model',
                         type=str,
@@ -46,10 +46,9 @@ def main():
     args = cli_argument_parser()
     reader = DataReader.create(args)
     adapter = None
-    detector = None
-    
-    visual = Visualize(reader, detector)
-    visual.show()
+    detector = visual.PseudoDetector(args.dir_layout_path)
+    visualizer = visual.Visualize(reader, detector)
+    visualizer.show()
     
 if __name__ == "__main__":
     main()

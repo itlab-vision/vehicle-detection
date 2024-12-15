@@ -29,7 +29,7 @@ class VideoDataReader(DataReader):
         self.video_path = args.video_path
         self.cap = cv.VideoCapture(args.video_path)
         if not self.cap.isOpened():
-            raise ValueError(f"Не получилсоь считать видео: {args.video_path}")
+            raise ValueError(f"Не получилось считать видео: {args.video_path}")
 
     def __iter__(self):
         return self
