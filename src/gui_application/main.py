@@ -12,29 +12,28 @@ def cli_argument_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-t', '--mode',
-                        help='Mode (\'image\', \'video\', \'img-pack\')',
+                        help='Mode (\'image\', \'video\')',
                         type=str,
                         dest='mode',
-                        default='image')
+                        required=True)
     parser.add_argument('-v', '--video',
                         help='Path to a video file',
                         type=str,
-                        dest='video_path',
-                        default='samplevideo.mp4')
+                        dest='video_path')
     parser.add_argument('-i', '--image',
-                        help='Path to an images',
+                        help='Path to images',
                         type=str,
-                        dest='images_path',
-                        default="D:/SEMYON/UNN/ITLAB/DLMini/data/imgs_MOV03478")
-    parser.add_argument('-l', '--layout',
-                        help='Path to a dir of layout',
+                        dest='images_path')
+    parser.add_argument('-g', '--groundtruth',
+                        help='Path to a file of groundtruth',
                         type=str,
-                        dest='dir_layout_path',
-                        default="D:/SEMYON/UNN/ITLAB/DLMini/layout/mov03478.txt")
+                        dest='groundtruth_path',
+                        required=False)
     parser.add_argument('-m', '--model',
                         help='Path to a model',
                         type=str,
                         dest='model_path',
+                        required=True,
                         default=None)
 
     
@@ -46,9 +45,9 @@ def main():
     args = cli_argument_parser()
     reader = DataReader.create(args)
     adapter = None
-    detector = visual.PseudoDetector(args.dir_layout_path)
+    detector = visual.PseudoDetector(args.groundtruth_path) # doesn't get groundtruth_path for real, this for only demonstration. Fix later.
     visualizer = visual.Visualize(reader, detector)
     visualizer.show()
     
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
