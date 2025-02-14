@@ -3,8 +3,8 @@ from datareader import DataReader
 import random
 class PseudoDetector:
     def __init__(self, annotation_file):
-        self.frame_annotations = self.__read_format_return_annotations(annotation_file)
-    def __read_format_return_annotations(self, annotation_file):
+        self.frame_annotations = self.__rd_form_ret_annotations(annotation_file)
+    def __rd_form_ret_annotations(self, annotation_file):
         rand_bias = self.__get_random_bias()
         frame_annotations = {}
         with open(annotation_file, 'r') as file:
@@ -45,7 +45,7 @@ class Visualize:
             for image in self.datareader: # How to split?
                 if image is None:
                     break
-
+                
                 for box in detector_boxes[frame_idx]:
                     self.__draw_box(image, box, (255, 0, 0))
 

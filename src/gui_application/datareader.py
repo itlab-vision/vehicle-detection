@@ -18,7 +18,7 @@ class DataReader(ABC):
         elif args.mode == 'image':
             return ImgDataReader(args)
         else:
-            raise ValueError(f'Unsupported mode: {arg.mode}')
+            raise ValueError(f'Unsupported mode: {args.mode}')
 
 class VideoDataReader(DataReader):
 
