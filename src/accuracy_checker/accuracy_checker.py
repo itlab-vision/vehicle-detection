@@ -1,4 +1,4 @@
-from src.accuracy_checker.data_reader import GroundtruthReader, DetectionReader
+from src.utils.data_reader import GroundtruthReader, DetectionReader
 
 
 class AccuracyCalculator:
@@ -25,7 +25,7 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with groundtruths.
         """
-        self.groundtruths = GroundtruthReader.read_key_class_name(file_path)
+        self.groundtruths = self.__format_read_data(GroundtruthReader.read(file_path))
 
     def load_detections(self, file_path):
         """
@@ -33,7 +33,7 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with detections.
         """
-        self.detections = DetectionReader.read_key_class_name(file_path)
+        self.detections = self.__format_read_data(DetectionReader.read(file_path))
 
     def calc_tp(self):
         all_classes = self.groundtruths.keys()
@@ -134,8 +134,8 @@ class AccuracyCalculator:
         count_gt = [len(groundtruths.get(frame, [])) for frame in groundtruths]
         count_det = [len(groundtruths.get(frame, [])) for frame in detections]
 
-        precisions = []
-        recalls = []
+        all_precisions = []
+        all_recalls = []
         for tp, fp, fn, gt, det in zip(all_tp, all_fp, all_fn, count_gt, count_det):
             if gt > 0 and det > 0:
                 precision = tp / (tp + fp)
@@ -150,10 +150,10 @@ class AccuracyCalculator:
                 precision = 1
                 recall = 1
 
-            precisions.append(precision)
-            recalls.append(recall)
+            all_precisions.append(precision)
+            all_recalls.append(recall)
 
-        return precisions, recalls
+        return all_precisions, all_recalls
 
     def calc_ap(self, class_name):
         """
@@ -265,3 +265,22 @@ class AccuracyCalculator:
             sorted_detections[frame] = sorted(dets, key=lambda x: -x[-1])
 
         return sorted_detections
+
+    @staticmethod
+    def __format_read_data(data):
+        """
+        Formats parsed data.
+
+        :param data: Parsed data from CSV file with groundtruths or detections.
+        :return: Dict {class_name: {frame_id: [list of bboxes]}}.
+        """
+        formated_data = {}
+        for row in data:
+            frame_id, class_name, *args = row
+            if class_name not in formated_data:
+                formated_data[class_name] = {}
+            if frame_id not in formated_data[class_name]:
+                formated_data[class_name][frame_id] = []
+            formated_data[class_name][frame_id].append(args)
+
+        return formated_data
