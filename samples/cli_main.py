@@ -1,16 +1,14 @@
 import sys
 import os
-from ..src.gui_application.visualizer import Visualize
-from src.utils.data_reader import GroundtruthReader, FakeGroundtruthReader
+import argparse
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
+from src.gui_application.visualizer import Visualize
+from src.utils.data_reader import GroundtruthReader
 from src.utils.frame_data_reader import FrameDataReader
 from src.vehicle_detector.detector import Detector
-import datetime
-import argparse
-import os
-from PIL import Image
-
-import cv2 as cv
-import numpy as np
 
 def cli_argument_parser():
     parser = argparse.ArgumentParser()
@@ -41,18 +39,16 @@ def cli_argument_parser():
                         required=True,
                         default=None)
 
-    
     args = parser.parse_args()
     return args
 
-#некоторое подобие main 
 def main():
     args = cli_argument_parser()
     reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
-    adapter = None
     detector = Detector.create( "fake" )
-    visualizer = Visualize( reader, detector, FakeGroundtruthReader().read(args.groundtruth_path) )
+    visualizer = Visualize( reader, detector, GroundtruthReader().read(args.groundtruth_path) )
     visualizer.show()
-    
+
 if __name__ == '__main__':
     main()
+    

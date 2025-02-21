@@ -1,6 +1,6 @@
-import cv2 as cv
 import os
 from abc import ABC, abstractmethod
+import cv2 as cv
 
 class FrameDataReader(ABC):
     @abstractmethod
@@ -15,10 +15,9 @@ class FrameDataReader(ABC):
     def create(mode, dir_path):
         if mode == "video":
             return VideoDataReader(dir_path)
-        elif mode == "image":
+        if mode == "image":
             return ImgDataReader(dir_path)
-        else:
-            raise ValueError(f"Unsupported mode: {mode}")
+        raise ValueError(f"Unsupported mode: {mode}")
 
 class VideoDataReader(FrameDataReader):
 
@@ -27,7 +26,6 @@ class VideoDataReader(FrameDataReader):
         self.cap = cv.VideoCapture(video_path)
         if not self.cap.isOpened():
             raise ValueError(f"Cannot open video file: {video_path}")
-        
 
     def __iter__(self):
         return self
@@ -37,11 +35,9 @@ class VideoDataReader(FrameDataReader):
             ret, frame = self.cap.read()
             if ret:
                 return frame
-            else:
-                self.cap.release()
-                raise StopIteration
-        else:
+            self.cap.release()
             raise StopIteration
+        raise StopIteration
 
 class ImgDataReader(FrameDataReader):
     def __init__(self, dir_path):
@@ -65,5 +61,4 @@ class ImgDataReader(FrameDataReader):
             if img is None:
                 raise ValueError(f"Cannot read image file: {img_path}")
             return img
-        else:
-            raise StopIteration
+        raise StopIteration
