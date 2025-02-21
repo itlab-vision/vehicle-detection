@@ -10,7 +10,7 @@ class Detector(ABC):
         if mode == "vehicle":
             return VehicleDetector()
         elif mode == "fake":
-            return FakeDetector(42)
+            return FakeDetector()
         else:
             raise ValueError(f"Unsupported mode: {mode}")
 
