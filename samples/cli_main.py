@@ -38,7 +38,6 @@ def cli_argument_parser():
                         dest='model_path',
                         required=True,
                         default=None)
-
     args = parser.parse_args()
     return args
 
