@@ -1,10 +1,6 @@
 import sys
 import os
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(project_root)
-
-from src.gui_application.visualizer import Visualize
+from ..src.gui_application.visualizer import Visualize
 from src.utils.data_reader import GroundtruthReader, FakeGroundtruthReader
 from src.utils.frame_data_reader import FrameDataReader
 from src.vehicle_detector.detector import Detector
