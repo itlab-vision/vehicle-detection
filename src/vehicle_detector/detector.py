@@ -5,15 +5,15 @@ Provides abstract detection interface and concrete implementations for:
 - Production-ready vehicle detection (placeholder)
 - Randomized fake detection for testing/development
 
-Key Components:
-- Detector: Abstract base class defining detection interface
-- VehicleDetector: (To be implemented) For real vehicle detection
-- FakeDetector: Test implementation with random bounding box generation
+Classes:
+    :Detector: Abstract base class defining detection interface
+    :VehicleDetector: (To be implemented) For real vehicle detection
+    :FakeDetector: Test implementation with random bounding box generation
 
 Dependencies:
-- OpenCV (cv2): for image handling
-- random: for synthetic detection generation
-- abc: for abstract base class support
+    :OpenCV (cv2): for image handling
+    :random: for synthetic detection generation
+    :abc: for abstract base class support
 """
 
 import random
@@ -27,10 +27,12 @@ class Detector(ABC):
     Defines interface for detection systems using factory pattern.
     
     Methods:
+    
         detect: Abstract detection method to be implemented
         create: Factory method for instantiating concrete detectors
     
     Supported Modes:
+    
         'vehicle': Production detector (not implemented)
         'fake': Testing detector with random boxes
     """

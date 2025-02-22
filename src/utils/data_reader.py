@@ -7,14 +7,14 @@ Provides abstract and concrete implementations for reading annotation data from:
 - Synthetic data generation for testing
 
 Classes:
-    GroundtruthReader: Abstract base class for data readers
-    CsvGTReader: CSV parser for ground truth annotations
-    FakeGTReader: Synthetic data generator for testing
-    DetectionReader: CSV parser for detection results with confidence scores
+    :GroundtruthReader: Abstract base class for data readers
+    :CsvGTReader: CSV parser for ground truth annotations
+    :FakeGTReader: Synthetic data generator for testing
+    :DetectionReader: CSV parser for detection results with confidence scores
 
 Dependencies:
-    - csv module for file parsing
-    - random module for synthetic data generation
+    - :csv: module for file parsing
+    - :random: module for synthetic data generation
 """
 import csv
 import random
@@ -29,7 +29,7 @@ class GroundtruthReader(ABC):
         filepath (str): Path to data source (file or dummy source)
     
     Methods:
-        read: Abstract method to be implemented in subclasses
+        :read: Abstract method to be implemented in subclasses
     """
 
     def __init__(self, filepath):

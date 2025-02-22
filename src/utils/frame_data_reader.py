@@ -5,13 +5,13 @@ Provides abstract and concrete implementations for reading frame data from diffe
 Supports video files and image directories with OpenCV integration.
 
 Classes:
-    FrameDataReader: Abstract base class for frame readers
-    VideoDataReader: Concrete implementation for video files
-    ImgDataReader: Concrete implementation for image directories
+    :FrameDataReader: Abstract base class for frame readers
+    :VideoDataReader: Concrete implementation for video files
+    :ImgDataReader: Concrete implementation for image directories
 
 Dependencies:
-    - OpenCV (cv2)
-    - os module for file operations
+    - :OpenCV (cv2): for image reading
+    - :os: module for file operations
 """
 import os
 from abc import ABC, abstractmethod
@@ -23,6 +23,7 @@ class FrameDataReader(ABC):
     Defines the interface for iterating through frames from different sources.
     
     Methods:
+    
         create: Factory method to instantiate appropriate reader
         __iter__: Returns iterator object (abstract)
         __next__: Returns next frame (abstract)
@@ -134,8 +135,7 @@ class ImgDataReader(FrameDataReader):
             raise ValueError(f"Directory does not exist: {dir_path}")
         self.image_files = [
             os.path.join(dir_path, f) for f in os.listdir(dir_path)
-            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))
-        ] 
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))] 
 
     def __iter__(self):
         """Return iterator object.

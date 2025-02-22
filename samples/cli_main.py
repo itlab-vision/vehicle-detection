@@ -30,7 +30,8 @@ def cli_argument_parser():
             - model_path (str): Path to model file, required
 
     Raises:
-        argparse.ArgumentError: If required arguments are missing or invalid combinations are provided
+        argparse.ArgumentError:
+            If required arguments are missing or invalid combinations are provided
     """
     parser = argparse.ArgumentParser()
 
@@ -68,6 +69,7 @@ def main():
 
     Initializes data reader, detector, and visualizer components based on CLI arguments.
     Shows visualization using the following workflow:
+    
         1. Creates FrameDataReader based on input mode (video/image)
         2. Initializes a detector with 'fake' implementation
         3. Loads groundtruth data if provided

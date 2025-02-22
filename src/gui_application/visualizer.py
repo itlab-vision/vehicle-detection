@@ -12,24 +12,21 @@ Dependencies:
 - OpenCV (cv2) for image processing and display
 - argparse for command-line argument handling
 """
+
 import cv2 as cv
 from ..utils.frame_data_reader import FrameDataReader
 from ..vehicle_detector.detector import FakeDetector
+
 class Visualize:
     """Visualization controller for detection/groundtruth comparison.
 
     Handles frame iteration, bounding box drawing, and display management.
     Uses different colors for detected boxes (blue) and groundtruth boxes (green).
 
-    Args:
-        datareader (FrameDataReader): Input source for frames (video/images)
-        detector (FakeDetector): Object detection implementation
-        gt_data (list): Groundtruth data in format [[frame_idx, label, x1, y1, x2, y2], ...]
-
     Attributes:
-        datareader (FrameDataReader): Frame input source
+        datareader (FrameDataReader): Input source for frames (video/images)
         detector (FakeDetector): Detection component
-        gt_layout (list): Loaded groundtruth annotations
+        gt_layout (list): Loaded groundtruth in format [[frame_idx, label, x1, y1, x2, y2], ...]
     """
     def __init__(self, datareader:FrameDataReader, detector:FakeDetector, gt_data:list):
         """Initialize visualization components with data sources."""
