@@ -147,7 +147,7 @@ class AccuracyCalculator:
         all_tp, all_fp, all_fn = [], [], []
         for frame_id, dets in all_detections.items():
             gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-            tp_det, fp_det, fn_det = self.__match_detections_to_groundtruths(dets, gts)
+            tp_det, fp_det, _ = self.__match_detections_to_groundtruths(dets, gts)
             tp += tp_det
             fp += fp_det
             fn -= (tp_det + fp_det)
@@ -171,7 +171,7 @@ class AccuracyCalculator:
             elif gt > 0 and det == 0:   # tp == 0 nad fp == 0 and fn > 0
                 precision = 1
                 recall = 0
-            elif gt == 0 and det == 0:  # tp == 0 nad fp == 0 and fn == 0
+            else:                       # tp == 0 nad fp == 0 and fn == 0
                 precision = 1
                 recall = 1
 
@@ -205,7 +205,7 @@ class AccuracyCalculator:
 
         return ap
 
-    def calc_mAP(self):
+    def calc_map(self):
         """
         Calculates Mean Average Precision (mAP) for all classes.
 
@@ -228,17 +228,12 @@ class AccuracyCalculator:
         :param bbox2: The second rectangle [x1, y1, x2, y2].
         :return: The value of IoU (from 0 to 1).
         """
-        x1, y1, x2, y2 = bbox1
-        x1g, y1g, x2g, y2g = bbox2
-
-        xi1 = max(x1, x1g)
-        yi1 = max(y1, y1g)
-        xi2 = min(x2, x2g)
-        yi2 = min(y2, y2g)
+        xi1, yi1 = max(bbox1[0], bbox2[0]), max(bbox1[1], bbox2[1])
+        xi2, yi2 = min(bbox1[2], bbox2[2]), min(bbox1[3], bbox2[3])
 
         inter_area = max(0, xi2 - xi1 + 1) * max(0, yi2 - yi1 + 1)
-        bbox1_area = (x2 - x1 + 1) * (y2 - y1 + 1)
-        bbox2_area = (x2g - x1g + 1) * (y2g - y1g + 1)
+        bbox1_area = (bbox1[2] - bbox1[0] + 1) * (bbox1[3] - bbox1[1] + 1)
+        bbox2_area = (bbox2[2] - bbox2[0] + 1) * (bbox2[3] - bbox2[1] + 1)
         union_area = bbox1_area + bbox2_area - inter_area
 
         return inter_area / union_area if union_area > 0 else 0
@@ -255,12 +250,11 @@ class AccuracyCalculator:
         tp, fp, fn = 0, 0, 0
 
         for det in detections:
-            x1, y1, x2, y2, conf = det
             best_iou = 0
             best_gt_idx = -1
             # Look for the rectangle with the highest iou value
             for idx, gt in enumerate(groundtruths):
-                iou = self.__calc_iou([x1, y1, x2, y2], gt)
+                iou = self.__calc_iou(det[:-1], gt)
                 if iou > best_iou:
                     best_iou = iou
                     best_gt_idx = idx
