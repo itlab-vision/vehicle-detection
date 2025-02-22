@@ -24,7 +24,7 @@ Dependencies:
     - Built-in Python math operations for IoU calculations
 """
 
-from src.utils.data_reader import GroundtruthReader, DetectionReader
+from src.utils.data_reader import CsvGTReader, DetectionReader
 
 
 class AccuracyCalculator:
@@ -51,7 +51,7 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with groundtruths.
         """
-        self.groundtruths = self.__format_read_data(GroundtruthReader.read(file_path))
+        self.groundtruths = self.__format_read_data(CsvGTReader(file_path).read())
 
     def load_detections(self, file_path):
         """
@@ -59,7 +59,7 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with detections.
         """
-        self.detections = self.__format_read_data(DetectionReader.read(file_path))
+        self.detections = self.__format_read_data(DetectionReader(file_path).read())
 
     def calc_tp(self):
         """

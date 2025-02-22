@@ -34,7 +34,6 @@ class DataReader(ABC):
     @abstractmethod
     def read(self):
         """Parse file and return structured annotation data"""
-        pass
 
 class CsvGTReader(DataReader):
     """
@@ -47,9 +46,6 @@ class CsvGTReader(DataReader):
     - `class_name` (str): The object class.
     - `x1, y1, x2, y2` (int): Bounding box coordinates.
     """
-
-    def __init__(self, filepath):
-        super().__init__(filepath)
 
     def read(self):
         """
@@ -73,8 +69,10 @@ class CsvGTReader(DataReader):
 
         except FileNotFoundError:
             print(f"File {self.file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {self.file_path}: {e}")
+        except (ValueError, csv.Error) as e:
+            print(f"Data format error in {self.file_path}: {e}")
+        except OSError as e:
+            print(f"File system error accessing {self.file_path}: {e}")
 
         return parsed_data
 
@@ -91,9 +89,6 @@ class DetectionReader(DataReader):
     - `x1, y1, x2, y2` (int): Bounding box coordinates.
     - `confidence` (float): A confidence score.
     """
-
-    def __init__(self, file_path):
-        super().__init__(file_path)
 
     def read(self):
         """
@@ -117,7 +112,9 @@ class DetectionReader(DataReader):
 
         except FileNotFoundError:
             print(f"File {self.file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {self.file_path}: {e}")
+        except (ValueError, csv.Error) as e:
+            print(f"Data format error in {self.file_path}: {e}")
+        except OSError as e:
+            print(f"File system error accessing {self.file_path}: {e}")
 
         return parsed_data
