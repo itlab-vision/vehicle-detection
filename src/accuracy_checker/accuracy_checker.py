@@ -12,8 +12,8 @@ class AccuracyCalculator:
         """
         Class initialization for calculating average accuracy (AP).
 
-        :param iou_threshold: The threshold of the International Over Union (IOU) is used to determine
-                              whether the found object is consistent with the true markup.
+        :param iou_threshold: The threshold of the International Over Union (IOU) is used to
+                            determine whether the found object is consistent with the true markup.
         """
         self.iou_threshold = iou_threshold
         self.groundtruths = {}  # dict: Groundtruths (grouped by classes)
@@ -36,6 +36,11 @@ class AccuracyCalculator:
         self.detections = self.__format_read_data(DetectionReader.read(file_path))
 
     def calc_tp(self):
+        """
+        Calculates the total number of True Positive (TP) detections.
+
+        :return: Total number of True Positive detections.
+        """
         all_classes = self.groundtruths.keys()
         tp = 0
         for class_name in all_classes:
@@ -54,6 +59,11 @@ class AccuracyCalculator:
         return tp
 
     def calc_fn(self):
+        """
+        Calculates the total number of False Negative (FN) detections.
+
+        :return: Total number of False Negative detections.
+        """
         all_classes = self.groundtruths.keys()
         fn = 0
         for class_name in all_classes:
@@ -72,6 +82,11 @@ class AccuracyCalculator:
         return fn
 
     def calc_fp(self):
+        """
+        Calculates the total number of False Positive (FN) detections.
+
+        :return: Total number of False Positive detections.
+        """
         all_classes = self.groundtruths.keys()
         fp = 0
         for class_name in all_classes:
@@ -90,12 +105,22 @@ class AccuracyCalculator:
         return fp
 
     def calc_tpr(self):
+        """
+        Calculates True Positive Rate (TPR).
+
+        :return: True Positive Rate.
+        """
         tp = self.calc_tp()
         fn = self.calc_fn()
 
         return tp / (tp + fn) if (tp + fn) else 0
 
     def calc_fdr(self):
+        """
+        Calculates False Detection Rate (FDR).
+
+        :return: False Detection Rate.
+        """
         tp = self.calc_tp()
         fp = self.calc_fp()
 
@@ -233,7 +258,7 @@ class AccuracyCalculator:
             x1, y1, x2, y2, conf = det
             best_iou = 0
             best_gt_idx = -1
-            # Among all the rectangles of the groundtruths we look for the one with the highest iou value
+            # Look for the rectangle with the highest iou value
             for idx, gt in enumerate(groundtruths):
                 iou = self.__calc_iou([x1, y1, x2, y2], gt)
                 if iou > best_iou:
