@@ -1,3 +1,22 @@
+"""
+Ground Truth and Detection Data Readers Module
+
+Provides abstract and concrete implementations for reading annotation data from:
+- CSV files with ground truth
+- CSV files with detection results
+- Synthetic data generation for testing
+
+Classes:
+    GroundtruthReader: Abstract base class for data readers
+    CsvGTReader: CSV parser for ground truth annotations
+    FakeGTReader: Synthetic data generator for testing
+    DetectionReader: CSV parser for detection results with confidence scores
+
+Dependencies:
+    - csv module for file parsing
+    - random module for synthetic data generation
+"""
+
 import csv
 
 
