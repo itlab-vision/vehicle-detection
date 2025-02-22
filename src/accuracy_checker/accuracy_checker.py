@@ -160,44 +160,37 @@ class AccuracyCalculator:
         :return: Precisions, Recalls
         """
         if class_name not in self.detections or class_name not in self.groundtruths:
-            return 0.0
+            return [], []
 
         detections = self.detections[class_name]
         groundtruths = self.groundtruths[class_name]
 
-        # 1. Sorting predictions by confidence
-        all_detections = self.__sort_detections_by_confidence(detections)
+        tp_total, fp_total = 0, 0
+        fn_total = sum(len(groundtruths.get(frame, [])) for frame in groundtruths)
+        all_precisions, all_recalls = [], []
 
-        # 2. Search for correspondences between detections and groundtruths
-        tp, fp, fn = 0, 0, sum(len(groundtruths.get(frame, [])) for frame in groundtruths)
-        all_tp, all_fp, all_fn = [], [], []
-        for frame_id, dets in all_detections.items():
-            gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+        # Process sorted detections frame-by-frame
+        for frame_id, dets in self.__sort_detections_by_confidence(detections).items():
+            gts = groundtruths.get(frame_id, [])  # List of all rectangles for the frame
             tp_det, fp_det, _ = self.__match_detections_to_groundtruths(dets, gts)
-            tp += tp_det
-            fp += fp_det
-            fn -= (tp_det + fp_det)
-            all_tp.append(tp)
-            all_fp.append(fp)
-            all_fn.append(fn)
 
-        # 3. Calculate Precision and Recall for all points
-        count_gt = [len(groundtruths.get(frame, [])) for frame in groundtruths]
-        count_det = [len(groundtruths.get(frame, [])) for frame in detections]
+            tp_total += tp_det
+            fp_total += fp_det
+            fn_total -= (tp_det + fp_det)  # Update remaining false negatives
 
-        all_precisions = []
-        all_recalls = []
-        for tp, fp, fn, gt, det in zip(all_tp, all_fp, all_fn, count_gt, count_det):
-            if gt > 0 and det > 0:
-                precision = tp / (tp + fp)
-                recall = tp / (tp + fn)
-            elif gt == 0 and det > 0:   # tp == 0 nad fp > 0 and fn == 0
+            has_gts = len(gts) > 0
+            has_dets = len(dets) > 0
+
+            if has_gts and has_dets:
+                precision = tp_total / (tp_total + fp_total) if (tp_total + fp_total) else 0
+                recall = tp_total / (tp_total + fn_total) if (tp_total + fn_total) else 0
+            elif (not has_gts) and has_dets:  # tp == 0 nad fp > 0 and fn == 0
                 precision = 0
                 recall = 1
-            elif gt > 0 and det == 0:   # tp == 0 nad fp == 0 and fn > 0
+            elif has_gts and (not has_dets):  # tp == 0 nad fp == 0 and fn > 0
                 precision = 1
                 recall = 0
-            else:                       # tp == 0 nad fp == 0 and fn == 0
+            else:  # tp == 0 nad fp == 0 and fn == 0
                 precision = 1
                 recall = 1
 
