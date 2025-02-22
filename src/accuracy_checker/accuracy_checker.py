@@ -1,13 +1,16 @@
 """
 Accuracy Checker Module
 
-Provides a class for calculating key object detection metrics including True Positive Rate (TPR),
-False Detection Rate (FDR), Average Precision (AP), and Mean Average Precision (mAP) across multiple classes.
+Provides a class for calculating key object detection metrics including:
+    - True Positive Rate (TPR)
+    - False Detection Rate (FDR)
+    - Average Precision (AP)
+    - Mean Average Precision (mAP) across multiple classes.
 
 Main Class:
-    AccuracyCalculator: Handles metric computation using Intersection over Union (IoU) matching between
-    ground truth annotations and detection predictions. Supports loading data from CSV files via integrated
-    data readers.
+    AccuracyCalculator: Handles metric computation using Intersection over Union (IoU)
+    matching between ground truth annotations and detection predictions.
+    Supports loading data from CSV files via integrated data readers.
 
 Key Functionality:
     - Loading ground truth annotations and detection results from CSV files
@@ -21,7 +24,7 @@ Dependencies:
     - Built-in Python math operations for IoU calculations
 """
 
-from ..utils.data_reader import GroundtruthReader, DetectionReader
+from src.utils.data_reader import GroundtruthReader, DetectionReader
 
 
 class AccuracyCalculator:

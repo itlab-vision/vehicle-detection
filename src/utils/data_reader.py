@@ -18,9 +18,25 @@ Dependencies:
 """
 
 import csv
+from abc import ABC, abstractmethod
 
 
-class GroundtruthReader:
+class DataReader(ABC):
+    """
+    Abstract base class for data reading implementations.
+
+    :param filepath: Path to data source file.
+    """
+
+    def __init__(self, filepath):
+        self.file_path = filepath
+
+    @abstractmethod
+    def read(self):
+        """Parse file and return structured annotation data"""
+        pass
+
+class CsvGTReader(DataReader):
     """
     A utility class for reading and parsing groundtruth data from a CSV file.
 
@@ -32,17 +48,18 @@ class GroundtruthReader:
     - `x1, y1, x2, y2` (int): Bounding box coordinates.
     """
 
-    @staticmethod
-    def read(file_path):
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+    def read(self):
         """
         Parsing CSV file with groundtruths.
 
-        :param file_path: The path to the file with groundtruths.
         :return: list[tuples] of parsed data by rows.
         """
         parsed_data = []
         try:
-            with open(file_path, mode='r', encoding='utf-8') as file:
+            with open(self.file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 6:
@@ -55,14 +72,14 @@ class GroundtruthReader:
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {file_path} was not found.")
+            print(f"File {self.file_path} was not found.")
         except Exception as e:
-            print(f"Error when reading the file {file_path}: {e}")
+            print(f"Error when reading the file {self.file_path}: {e}")
 
         return parsed_data
 
 
-class DetectionReader:
+class DetectionReader(DataReader):
     """
     A utility class for reading and parsing detections data from a CSV file.
 
@@ -75,17 +92,18 @@ class DetectionReader:
     - `confidence` (float): A confidence score.
     """
 
-    @staticmethod
-    def read(file_path):
+    def __init__(self, file_path):
+        super().__init__(file_path)
+
+    def read(self):
         """
         Parsing CSV file with detections.
 
-        :param file_path: The path to the file with detections.
         :return: list[tuples] of parsed data by rows.
         """
         parsed_data = []
         try:
-            with open(file_path, mode='r', encoding='utf-8') as file:
+            with open(self.file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 7:
@@ -98,8 +116,8 @@ class DetectionReader:
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {file_path} was not found.")
+            print(f"File {self.file_path} was not found.")
         except Exception as e:
-            print(f"Error when reading the file {file_path}: {e}")
+            print(f"Error when reading the file {self.file_path}: {e}")
 
         return parsed_data
