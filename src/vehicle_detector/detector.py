@@ -1,6 +1,20 @@
+"""
+This module provides an abstract base class and concrete implementations for object detection,
+with a focus on vehicle detection. It supports both real (to be implemented) and fake (randomized)
+detection modes for testing and development purposes.
+
+Classes
+-------
+Detector (Abstract Base Class)
+VehicleDetector (Concrete Class)
+FakeDetector (Concrete Class)
+"""
+
 import random
 from abc import ABC, abstractmethod
 import cv2 as cv
+
+
 class Detector(ABC):
     @abstractmethod
     def detect(self, image):

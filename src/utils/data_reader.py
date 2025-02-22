@@ -1,8 +1,17 @@
 import csv
 import random
-class GroundtruthReader():
-    @staticmethod
-    def read(file_path):
+from abc import ABC, abstractmethod
+class GroundtruthReader(ABC):
+    def __init__(self, filepath):
+        self.file_path = filepath
+    @abstractmethod
+    def read(self):
+      pass
+class CsvGTReader(GroundtruthReader):
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+    def read(self):
         """
         Parsing CSV file with groundtruths.
 
@@ -11,7 +20,7 @@ class GroundtruthReader():
         """
         parsed_data = []
         try:
-            with open(file_path, mode='r', encoding='utf-8') as file:
+            with open(self.file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 6:
@@ -31,11 +40,7 @@ class GroundtruthReader():
         return parsed_data
 
 class FakeGroundtruthReader(GroundtruthReader):
-    def __init__(self,
-                max_frames = 1000,
-                obj_classes = None,
-                img_size = (1920, 1080),
-                seed = None):
+    def __init__(self, file_path):
         """
         Initializing the synthetic data generator
         
@@ -44,15 +49,15 @@ class FakeGroundtruthReader(GroundtruthReader):
         :param img_size: Image size (width, height)
         :param seed: Seed for reproducibility
         """
-        super().__init__()
-        self.max_frames = max_frames
-        self.obj_classes = obj_classes or ['car', 'truck', 'bus']
-        self.img_width, self.img_height = img_size
-        self.seed = seed
+        super().__init__(file_path)
+        self.max_frames = 1000
+        self.obj_classes = ['car', 'truck', 'bus']
+        self.img_width, self.img_height = (1920, 1080)
+        self.seed = 1
         if seed is not None:
             random.seed(seed)
 
-    def read(self, file_path = None):
+    def read(self):
         """
         Parsing CSV file with groundtruths.
 
