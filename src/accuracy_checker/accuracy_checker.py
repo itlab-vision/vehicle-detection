@@ -140,7 +140,8 @@ class AccuracyCalculator:
                     _, fp_det, _ = self.__match_dets_to_gts(dets, gts)
                     fp += fp_det
 
-        for class_name in self.detections:
+        all_classes_dets = self.detections.keys()
+        for class_name in all_classes_dets:
             if class_name not in all_classes:
                 detections = self.detections[class_name]
                 for frame_id, dets in detections.items():
