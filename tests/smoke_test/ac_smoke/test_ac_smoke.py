@@ -1,7 +1,11 @@
-import pytest
-from src.accuracy_checker.accuracy_checker import AccuracyCalculator
+"""
+Accuracy Calculator Module tests.
+"""
+
 import os
+import pytest
 from numpy import isclose
+from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 # import matplotlib.pyplot as plt
 
 
