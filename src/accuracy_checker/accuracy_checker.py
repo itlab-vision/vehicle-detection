@@ -70,17 +70,21 @@ class AccuracyCalculator:
         all_classes = self.groundtruths.keys()
         tp = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    tp_det, _, _ = self.__match_dets_to_gts([], gts)
+                    tp += tp_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_dets_by_confidence(detections)
-
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                tp_det, _, _ = self.__match_dets_to_gts(dets, gts)
-                tp += tp_det
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    tp_det, _, _ = self.__match_dets_to_gts(dets, gts)
+                    tp += tp_det
 
         return tp
 
@@ -93,17 +97,21 @@ class AccuracyCalculator:
         all_classes = self.groundtruths.keys()
         fn = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    _, _, fn_det = self.__match_dets_to_gts([], gts)
+                    fn += fn_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_dets_by_confidence(detections)
-
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                _, _, fn_det = self.__match_dets_to_gts(dets, gts)
-                fn += fn_det
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    _, _, fn_det = self.__match_dets_to_gts(dets, gts)
+                    fn += fn_det
 
         return fn
 
@@ -116,17 +124,27 @@ class AccuracyCalculator:
         all_classes = self.groundtruths.keys()
         fp = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    _, fp_det, _ = self.__match_dets_to_gts([], gts)
+                    fp += fp_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_dets_by_confidence(detections)
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    _, fp_det, _ = self.__match_dets_to_gts(dets, gts)
+                    fp += fp_det
 
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                _, fp_det, _ = self.__match_dets_to_gts(dets, gts)
-                fp += fp_det
+        for class_name in self.detections.keys():
+            if class_name not in all_classes:
+                detections = self.detections[class_name]
+                for frame_id, dets in detections.items():
+                    fp += len(dets)
 
         return fp
 
@@ -175,7 +193,8 @@ class AccuracyCalculator:
 
             tp_total += tp_det
             fp_total += fp_det
-            fn_total -= (tp_det + fp_det)
+            # fn_total -= (tp_det + fp_det)
+            fn_total -= tp_det
 
             has_gts = len(gts) > 0
             has_dets = len(dets) > 0
@@ -183,13 +202,13 @@ class AccuracyCalculator:
             if has_gts and has_dets:
                 precision = tp_total / (tp_total + fp_total) if (tp_total + fp_total) else 0
                 recall = tp_total / (tp_total + fn_total) if (tp_total + fn_total) else 0
-            elif (not has_gts) and has_dets:  # tp == 0 nad fp > 0 and fn == 0
+            elif (not has_gts) and has_dets:    # tp == 0 nad fp > 0 and fn == 0
                 precision = 0
                 recall = 1
-            elif has_gts and (not has_dets):  # tp == 0 nad fp == 0 and fn > 0
+            elif has_gts and (not has_dets):    # tp == 0 nad fp == 0 and fn > 0
                 precision = 1
                 recall = 0
-            else:  # tp == 0 nad fp == 0 and fn == 0
+            else:                               # tp == 0 nad fp == 0 and fn == 0
                 precision = 1
                 recall = 1
 
@@ -284,8 +303,8 @@ class AccuracyCalculator:
                 # Repeat detections are also added here
                 fp += 1
 
-        fn = len(groundtruths) - len(matched) - fp
-
+        # fn = len(groundtruths) - len(matched) - fp
+        fn = len(groundtruths) - len(matched)
         return tp, fp, fn
 
     @staticmethod
