@@ -58,7 +58,9 @@ class Visualize:
                         self.__draw_box(image, box, (0, 255, 0))
                 frame_idx+=1
                 if cv.waitKey(25) & 0xFF == ord('q'):
-                    break 
+                    break
+        except ValueError as e:
+            print(f"Datareader error: {e}")
         except Exception as e:
             print(f"An error occurred: {e}")
         finally:
@@ -68,15 +70,17 @@ class Visualize:
         """Internal method: Draw single bounding box with label.
         
         :param image: Input frame matrix
-        :param box: Detection tuple (label, x1, y1, x2, y2)
+        :param box: Detection tuple (label, x1, y1, x2, y2, confidence(detector) )
         :param color: BGR tuple for box/label color
         """
         label, x1, y1, x2, y2 = box[:5]
-        confidence = box[5] if len(box) > 5 else None
+        confidence = ''
+        if len(box) == 6:
+            confidence = str(box[5])
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        if (confidence): cv.putText(image, str(confidence), (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv.imshow("Image", image)
+        cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv.imshow("Detection", image)
 
     def __get_groundtruth_bboxes(self, frame_idx):
         """Internal method: Filter groundtruth boxes for current frame.

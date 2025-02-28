@@ -63,6 +63,9 @@ class Detector(ABC):
         raise ValueError(f"Unsupported mode: {mode}")
 
 class VehicleDetector(Detector):
+    """Placeholder for real vehicle detection system.    
+    Currently returns empty detections.
+    """
     def __init__(self):
         pass
     def detect(self, image):

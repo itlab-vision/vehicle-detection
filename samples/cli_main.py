@@ -78,7 +78,7 @@ def main():
     args = cli_argument_parser()
     reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
     detector = Detector.create( "fake" )
-    visualizer = Visualize( reader, detector, FakeGTReader().read(args.groundtruth_path) )
+    visualizer = Visualize( reader, detector, FakeGTReader(args.groundtruth_path).read() )
     visualizer.show()
 
 if __name__ == '__main__':
