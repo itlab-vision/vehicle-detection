@@ -2,6 +2,10 @@
 CLI application "Vehicle detector"
 """
 import argparse
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
 
 from src.gui_application.visualizer import Visualize
 from src.utils.data_reader import FakeGTReader

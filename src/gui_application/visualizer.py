@@ -52,7 +52,7 @@ class Visualize:
                 if image is None:
                     break
                 for box in self.detector.detect(image):
-                    self.__draw_box(image, box, (255, 0, 0))
+                    self.__draw_box(image, box, (255, 112, 166))
                 if self.gt_layout:
                     for box in self.__get_groundtruth_bboxes(frame_idx):
                         self.__draw_box(image, box, (0, 255, 0))
@@ -79,7 +79,7 @@ class Visualize:
             confidence = str(box[5])
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
         cv.imshow("Detection", image)
 
     def __get_groundtruth_bboxes(self, frame_idx):
