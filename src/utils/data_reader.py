@@ -13,23 +13,19 @@ Classes:
     :DetectionReader: CSV parser for detection results with confidence scores
 
 Dependencies:
-    - :csv: module for file parsing
-    - :random: module for synthetic data generation
+    :OpenCV (cv2): for image handling
+    :random: for synthetic detection generation
+    :abc: for abstract base class support
 """
 import csv
 import random
 from abc import ABC, abstractmethod
 
-class GroundtruthReader(ABC):
-    """Abstract base class for data reading implementations.
-    
-    Defines common interface for reading annotation data from different sources.
-    
-    Args:
-        filepath (str): Path to data source (file or dummy source)
-    
-    Methods:
-        :read: Abstract method to be implemented in subclasses
+class DataReader(ABC):
+    """
+    Abstract base class for data reading implementations.
+
+    :param filepath (str): Path to data source file.
     """
 
     def __init__(self, filepath):
@@ -37,22 +33,24 @@ class GroundtruthReader(ABC):
 
     @abstractmethod
     def read(self):
-        """Parse and return annotation data.
-        
-        Returns:
-            list: Annotation data in format specific to concrete implementation
-        """
-        pass
+        """Parse and return annotation data."""
 
-class CsvGTReader(GroundtruthReader):
-    def __init__(self, filepath):
-        super().__init__(filepath)
+class CsvGTReader(DataReader):
+    """
+    A utility class for reading and parsing groundtruth data from a CSV file.
+
+    The CSV file should have the following format:
+        frame_id, class_name, x1, y1, x2, y2
+
+    - `frame_id` (int): The frame number.
+    - `class_name` (str): The object class.
+    - `x1, y1, x2, y2` (int): Bounding box coordinates.
+    """
 
     def read(self):
         """
         Parsing CSV file with groundtruths.
 
-        :param file_path: The path to the file with groundtruths.
         :return: list[tuples] of parsed data by rows.
         """
         parsed_data = []
@@ -71,12 +69,14 @@ class CsvGTReader(GroundtruthReader):
 
         except FileNotFoundError:
             print(f"File {self.file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {self.file_path}: {e}")
+        except (ValueError, csv.Error) as e:
+            print(f"Data format error in {self.file_path}: {e}")
+        except OSError as e:
+            print(f"File system error accessing {self.file_path}: {e}")
 
         return parsed_data
 
-class FakeGTReader(GroundtruthReader):
+class FakeGTReader(DataReader):
     """Synthetic ground truth data generator for testing.
     
     Generates random annotations with:
@@ -84,10 +84,10 @@ class FakeGTReader(GroundtruthReader):
     - Random object classes
     - Valid bounding boxes within image dimensions
     - Reproducible results through seeding
-    
-    Args:
-        file_path (str): Dummy parameter for interface compatibility
+
+    :param file_path (str): Dummy parameter for interface compatibility
     """
+
     def __init__(self, file_path):
         super().__init__(file_path)
         self.max_frames = 1000
@@ -98,11 +98,9 @@ class FakeGTReader(GroundtruthReader):
 
     def read(self):
         """Generate synthetic annotation data.
-        
-        Returns:
-            list[tuple]: Generated data in format 
-            (frame_id, class_name, x1, y1, x2, y2)
-            
+
+        :return: list[tuples] of parsed data by rows.
+
         Notes:
             - 20% chance to skip frames randomly
             - 1-5 objects per frame
@@ -132,8 +130,7 @@ class FakeGTReader(GroundtruthReader):
     def __generate_bbox(self):
         """Generate random valid bounding box coordinates.
         
-        Returns:
-            tuple: (x, y, width, height) coordinates within image bounds
+        :return: tuple: (x, y, width, height) coordinates within image bounds
         """
         x = int(random.uniform(0, self.img_width - 50))
         y = int(random.uniform(0, self.img_height - 50))
@@ -141,15 +138,23 @@ class FakeGTReader(GroundtruthReader):
         h = int(random.uniform(50, self.img_height - y))
         return (x, y, h, w)
 
-class DetectionReader(GroundtruthReader):
-    def __init__(self, file_path):
-        self.file_path = file_path
+class DetectionReader(DataReader):
+    """
+    A utility class for reading and parsing detections data from a CSV file.
+
+    The CSV file should have the following format:
+        frame_id, class_name, x1, y1, x2, y2, confidence
+
+    - `frame_id` (int): The frame number.
+    - `class_name` (str): The object class.
+    - `x1, y1, x2, y2` (int): Bounding box coordinates.
+    - `confidence` (float): A confidence score.
+    """
 
     def read(self):
         """
         Parsing CSV file with detections.
 
-        :param file_path: The path to the file with detections.
         :return: list[tuples] of parsed data by rows.
         """
         parsed_data = []
@@ -166,6 +171,9 @@ class DetectionReader(GroundtruthReader):
                     parsed_data.append(row_data)
         except FileNotFoundError:
             print(f"File {self.file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {self.file_path}: {e}")
+        except (ValueError, csv.Error) as e:
+            print(f"Data format error in {self.file_path}: {e}")
+        except OSError as e:
+            print(f"File system error accessing {self.file_path}: {e}")
+
         return parsed_data

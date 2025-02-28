@@ -30,38 +30,29 @@ class FrameDataReader(ABC):
     """
     @abstractmethod
     def __iter__(self):
-        """Return iterator object.
-        
-        Returns:
-            self: Iterator instance
         """
-        pass
+        :return self: Iterator instance
+        """
 
     @abstractmethod
     def __next__(self):
         """Get next frame in sequence.
         
-        Returns:
-            ndarray: Next frame as numpy array
+        :return: ndarray: Next frame as numpy array
             
-        Raises:
-            StopIteration: When no more frames available
+        :raise: StopIteration: When no more frames available
         """
-        pass
 
     @staticmethod
     def create(mode, dir_path):
         """Factory method to create appropriate reader instance.
         
-        Args:
-            mode (str): Source type - 'video' or 'image'
-            dir_path (str): Path to video file or image directory
+        :param mode (str): Source type - 'video' or 'image'
+        :param dir_path (str): Path to video file or image directory
             
-        Returns:
-            FrameDataReader: Concrete reader instance
+        :return: FrameDataReader: Concrete reader instance
             
-        Raises:
-            ValueError: For unsupported modes or invalid paths
+        :raises: ValueError: For unsupported modes or invalid paths
         """
         if mode == "video":
             return VideoDataReader(dir_path)
@@ -74,14 +65,11 @@ class VideoDataReader(FrameDataReader):
     
     Iterates through frames of a video file. Automatically handles
     video resource cleanup on exhaustion.
-    
-    Args:
-        video_path (str): Path to video file
-        
-    Raises:
-        ValueError: If video file cannot be opened
-    """
 
+    :param video_path (str): Path to video file
+        
+    :raise: ValueError: If video file cannot be opened
+    """
     def __init__(self, video_path):
         """Initialize video capture and validate path."""
         self.video_path = video_path
@@ -90,21 +78,17 @@ class VideoDataReader(FrameDataReader):
             raise ValueError(f"Cannot open video file: {video_path}")
 
     def __iter__(self):
-        """Return iterator object.
-        
-        Returns:
-            self: Iterator instance
+        """
+        :return: self: Iterator instance
         """
         return self
 
     def __next__(self):
         """Get next video frame.
+
+        :return: ndarray: Next video frame as numpy array
         
-        Returns:
-            ndarray: Next video frame as numpy array
-            
-        Raises:
-            StopIteration: When video ends or is closed
+        :raise: StopIteration: When video ends or is closed
         """
         if self.cap.isOpened():
             ret, frame = self.cap.read()
@@ -116,15 +100,13 @@ class VideoDataReader(FrameDataReader):
 
 class ImgDataReader(FrameDataReader):
     """Image directory frame reader.
+
+    - Iterates through image files in directory sorted alphabetically.
+    - Supports common image formats: PNG, JPG, JPEG, BMP, TIFF.
     
-    Iterates through image files in directory sorted alphabetically.
-    Supports common image formats: PNG, JPG, JPEG, BMP, TIFF.
-    
-    Args:
-        dir_path (str): Path to image directory
+    :param dir_path (str): Path to image directory
         
-    Raises:
-        ValueError: For invalid directory path
+    :raise: ValueError: For invalid directory path
     """
 
     def __init__(self, dir_path):
@@ -135,25 +117,22 @@ class ImgDataReader(FrameDataReader):
             raise ValueError(f"Directory does not exist: {dir_path}")
         self.image_files = [
             os.path.join(dir_path, f) for f in os.listdir(dir_path)
-            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))] 
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))
+        ]
 
     def __iter__(self):
-        """Return iterator object.
-        
-        Returns:
-            self: Iterator instance
+        """
+        :return: self: Iterator instance
         """
         return self
 
     def __next__(self):
         """Load next image in directory.
-        
-        Returns:
-            ndarray: Image data as numpy array
-            
-        Raises:
-            StopIteration: When all images processed
-            ValueError: If image file cannot be read
+
+        :return: ndarray: Image data as numpy array
+
+        :raise: StopIteration: When all images processed
+        :raise: ValueError: If image file cannot be read
         """
         if self.index < len(self.image_files):
             img_path = self.image_files[self.index]

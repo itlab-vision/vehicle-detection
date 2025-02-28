@@ -40,25 +40,21 @@ class Detector(ABC):
     def detect(self, image):
         """Process image and return detected objects.
         
-        Args:
-            image: Input image array (OpenCV format)
+        
+        :param image: Input image array (OpenCV format)
             
-        Returns:
-            list: Detection tuples (label, x1, y1, x2, y2)
+        :return: list: Detection tuples (label, x1, y1, x2, y2)
         """
         pass
     @staticmethod
     def create(mode):
         """Factory method for creating detector instances.
         
-        Args:
-            mode (str): Detector variant selector
+        :param mode (str): Detector variant selector
+
+        :return: Detector: Concrete subclass instance
             
-        Returns:
-            Detector: Concrete subclass instance
-            
-        Raises:
-            ValueError: For unsupported mode specifications
+        :raise: ValueError: For unsupported mode specifications
         """
         if mode == "vehicle":
             return VehicleDetector()
@@ -80,8 +76,7 @@ class FakeDetector(Detector):
     - Random valid positions within image bounds
     - Reproducible results via seed control
     
-    Args:
-        seed (int, optional): Random seed for reproducibility
+    :param seed (int): Random seed for reproducibility
     """
     def __init__(self, seed = None):
         if seed is not None:
@@ -90,14 +85,10 @@ class FakeDetector(Detector):
     def detect(self, image):
         """Generate synthetic detections for testing.
         
-        Args:
-            image: Input image array (checks size validity)
+        :param image: Input image array (checks size validity)
             
-        Returns:
-            list: Detection tuples (class, x1, y1, x2, y2)
-            
-        Note:
-            Skips processing for invalid/empty images
+        :return: list: Detection tuples (class, x1, y1, x2, y2, confidence)
+
         """
         if image is None or image.size == 0:
             return []
@@ -112,5 +103,6 @@ class FakeDetector(Detector):
             x2 = random.randint(x1 + 1, width - 1)
             y1 = random.randint(0, height - 2)
             y2 = random.randint(y1 + 1, height - 1)
-            bboxes.append((cl, x1, y1, x2, y2))
+            confidence = random.random()
+            bboxes.append((cl, x1, y1, x2, y2, confidence))
         return bboxes

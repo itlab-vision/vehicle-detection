@@ -14,8 +14,8 @@ Dependencies:
 """
 
 import cv2 as cv
-from ..utils.frame_data_reader import FrameDataReader
-from ..vehicle_detector.detector import FakeDetector
+from src.utils.frame_data_reader import FrameDataReader
+from src.vehicle_detector.detector import Detector
 
 class Visualize:
     """Visualization controller for detection/groundtruth comparison.
@@ -23,12 +23,11 @@ class Visualize:
     Handles frame iteration, bounding box drawing, and display management.
     Uses different colors for detected boxes (blue) and groundtruth boxes (green).
 
-    Attributes:
-        datareader (FrameDataReader): Input source for frames (video/images)
-        detector (FakeDetector): Detection component
-        gt_layout (list): Loaded groundtruth in format [[frame_idx, label, x1, y1, x2, y2], ...]
+    :param datareader (FrameDataReader): Input source for frames (video/images)
+    :param detector (Detector): Detection component
+    :param gt_layout (list): Loaded groundtruth in format [[frame_idx, label, x1, y1, x2, y2], ...]
     """
-    def __init__(self, datareader:FrameDataReader, detector:FakeDetector, gt_data:list):
+    def __init__(self, datareader:FrameDataReader, detector:Detector, gt_data:list):
         """Initialize visualization components with data sources."""
         self.datareader = datareader
         self.detector = detector
@@ -68,23 +67,22 @@ class Visualize:
     def __draw_box(self, image, box, color):
         """Internal method: Draw single bounding box with label.
         
-        Args:
-            image: Input frame matrix
-            box: Detection tuple (label, x1, y1, x2, y2)
-            color: BGR tuple for box/label color
+        :param image: Input frame matrix
+        :param box: Detection tuple (label, x1, y1, x2, y2)
+        :param color: BGR tuple for box/label color
         """
-        label, x1, y1, x2, y2 = box
+        label, x1, y1, x2, y2 = box[:5]
+        confidence = box[5] if len(box) > 5 else None
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        cv.putText(image, label, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        if (confidence): cv.putText(image, str(confidence), (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.imshow("Image", image)
 
     def __get_groundtruth_bboxes(self, frame_idx):
         """Internal method: Filter groundtruth boxes for current frame.
         
-        Args:
-            frame_idx: Current frame index
+        :param frame_idx: Current frame index
             
-        Returns:
-            list: Groundtruth boxes for specified frame in format [label, x1, y1, x2, y2]
+        :return:list: Groundtruth boxes for specified frame in format [label, x1, y1, x2, y2]
         """
         return [item[1:] for item in self.gt_layout if item[0] == frame_idx]
