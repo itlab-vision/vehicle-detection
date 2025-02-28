@@ -2,8 +2,9 @@
 CLI application "Vehicle detector"
 """
 import argparse
+
 from src.gui_application.visualizer import Visualize
-from src.utils.data_reader import DataReader
+from src.utils.data_reader import FakeGTReader
 from src.utils.frame_data_reader import FrameDataReader
 from src.vehicle_detector.detector import Detector
 
@@ -77,7 +78,7 @@ def main():
     args = cli_argument_parser()
     reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
     detector = Detector.create( "fake" )
-    visualizer = Visualize( reader, detector, DataReader().read(args.groundtruth_path) )
+    visualizer = Visualize( reader, detector, FakeGTReader().read(args.groundtruth_path) )
     visualizer.show()
 
 if __name__ == '__main__':

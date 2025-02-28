@@ -116,7 +116,7 @@ class FakeGTReader(DataReader):
                 x1, y1, w, h = self.__generate_bbox()
                 x2 = x1 + w
                 y2 = y1 + h
-                
+
                 data.append((
                     frame_id,
                     random.choice(self.obj_classes),
@@ -126,7 +126,7 @@ class FakeGTReader(DataReader):
                     round(y2, 2)
                 ))
         return data
-    
+
     def __generate_bbox(self):
         """Generate random valid bounding box coordinates.
         

@@ -45,7 +45,7 @@ class Detector(ABC):
             
         :return: list: Detection tuples (label, x1, y1, x2, y2)
         """
-        pass
+
     @staticmethod
     def create(mode):
         """Factory method for creating detector instances.
