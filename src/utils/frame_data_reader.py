@@ -114,7 +114,7 @@ class ImgDataReader(FrameDataReader):
         self.index = 0
         self.directory_path = dir_path
         if not os.path.exists(dir_path):
-            raise ValueError(f"Directory does not exist: {dir_path}")
+            raise ValueError(f"Images directory does not exist: {dir_path}")
         self.image_files = [
             os.path.join(dir_path, f) for f in os.listdir(dir_path)
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))

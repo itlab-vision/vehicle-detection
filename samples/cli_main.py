@@ -79,11 +79,14 @@ def main():
         - Either video_path or images_path argument must match the specified mode
         - model_path must point to a valid model file
     """
-    args = cli_argument_parser()
-    reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
-    detector = Detector.create( "fake" )
-    visualizer = Visualize( reader, detector, FakeGTReader(args.groundtruth_path).read() )
-    visualizer.show()
+    try:
+        args = cli_argument_parser()
+        reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
+        detector = Detector.create( "fake" )
+        visualizer = Visualize( reader, detector, FakeGTReader(args.groundtruth_path).read() )
+        visualizer.show()
+    except Exception as e:
+        print(e)
 
 if __name__ == '__main__':
     main()

@@ -59,10 +59,8 @@ class Visualize:
                 frame_idx+=1
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
-        except ValueError as e:
-            print(f"Datareader error: {e}")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            raise Exception(e)
         finally:
             cv.destroyAllWindows()
 
