@@ -28,7 +28,7 @@ jobs:
         run: cd tests/smoke_test/ac_smoke && python -m pytest test_ac_smoke.py
 
       - name: Upload accuracy artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: accuracy_report
