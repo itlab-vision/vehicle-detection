@@ -72,9 +72,9 @@ class CsvGTReader(DataReader):
         except FileNotFoundError:
             raise
         except (ValueError, csv.Error) as e:
-            raise ValueError(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
         except OSError as e:
-            raise OSError(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
 
@@ -117,8 +117,8 @@ class DetectionReader(DataReader):
         except FileNotFoundError:
             raise
         except (ValueError, csv.Error) as e:
-            raise ValueError(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
         except OSError as e:
-            raise OSError(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
