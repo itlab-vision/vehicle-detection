@@ -52,6 +52,8 @@ class CsvGTReader(DataReader):
         Parsing CSV file with groundtruths.
 
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
         parsed_data = []
         try:
@@ -68,11 +70,11 @@ class CsvGTReader(DataReader):
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {self.file_path} was not found.")
+            raise
         except (ValueError, csv.Error) as e:
-            print(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}")
         except OSError as e:
-            print(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}")
 
         return parsed_data
 
@@ -95,6 +97,8 @@ class DetectionReader(DataReader):
         Parsing CSV file with detections.
 
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
         parsed_data = []
         try:
@@ -111,10 +115,10 @@ class DetectionReader(DataReader):
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {self.file_path} was not found.")
+            raise
         except (ValueError, csv.Error) as e:
-            print(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}")
         except OSError as e:
-            print(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}")
 
         return parsed_data

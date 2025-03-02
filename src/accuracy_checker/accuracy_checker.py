@@ -194,7 +194,6 @@ class AccuracyCalculator:
 
             tp_total += tp_det
             fp_total += fp_det
-            # fn_total -= (tp_det + fp_det)
             fn_total -= tp_det
 
             has_gts = len(gts) > 0

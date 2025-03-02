@@ -6,7 +6,6 @@ import os
 import pytest
 from numpy import isclose
 from src.accuracy_checker.accuracy_checker import AccuracyCalculator
-# import matplotlib.pyplot as plt
 
 
 @pytest.mark.parametrize(
@@ -53,16 +52,6 @@ def test_precision_recall_curve(detection_file):
     assert len(precisions) == len(recalls)
     assert all(0.0 <= p <= 1.0 for p in precisions)
     assert all(0.0 <= r <= 1.0 for r in recalls)
-
-    # plt.figure()
-    # plt.plot(recalls, precisions, marker='o', linestyle='-', color='b')
-    # plt.xlabel("Recall")
-    # plt.ylabel("Precision")
-    # plt.title(f"Precision-Recall Curve ({detection_file})")
-    # plt.grid()
-    # save_file = os.path.abspath(f"test_results/{detection_file}.png")
-    # plt.savefig(save_file)
-    # plt.close()
 
 
 @pytest.mark.parametrize("detection_file,expected_map", [
