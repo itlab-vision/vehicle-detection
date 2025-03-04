@@ -52,6 +52,8 @@ class CsvGTReader(DataReader):
         Parsing CSV file with groundtruths.
 
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
         parsed_data = []
         try:
@@ -68,11 +70,11 @@ class CsvGTReader(DataReader):
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {self.file_path} was not found.")
+            raise
         except (ValueError, csv.Error) as e:
-            print(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
         except OSError as e:
-            print(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
 
@@ -156,6 +158,8 @@ class DetectionReader(DataReader):
         Parsing CSV file with detections.
 
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
         parsed_data = []
         try:
@@ -166,14 +170,14 @@ class DetectionReader(DataReader):
                         print(f"Incorrect line in the file: {row}")
                         continue
                     frame_id, class_name, x1, y1, x2, y2, confidence = row
-                    row_data = (int(frame_id), str(class_name), float(x1), float(y1),
-                                float(x2), float(y2), float(confidence))
+                    row_data = (int(frame_id), str(class_name), int(x1), int(y1),
+                                int(x2), int(y2), float(confidence))
                     parsed_data.append(row_data)
         except FileNotFoundError:
-            print(f"File {self.file_path} was not found.")
+            raise
         except (ValueError, csv.Error) as e:
-            print(f"Data format error in {self.file_path}: {e}")
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
         except OSError as e:
-            print(f"File system error accessing {self.file_path}: {e}")
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
