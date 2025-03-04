@@ -41,7 +41,7 @@ class Detector(ABC):
         """Process image and return detected objects.
         
         
-        :param image: Input image array (OpenCV format)
+        :param image (numpy.ndarray): Input image array (OpenCV format)
             
         :return: list: Detection tuples (label, x1, y1, x2, y2)
         """
@@ -88,7 +88,7 @@ class FakeDetector(Detector):
     def detect(self, image):
         """Generate synthetic detections for testing.
         
-        :param image: Input image array (checks size validity)
+        :param image (numpy.ndarray): Input image array (checks size validity)
             
         :return: list: Detection tuples (class, x1, y1, x2, y2, confidence)
 
