@@ -3,8 +3,8 @@ Fixtures for Data Reader Modules.
 """
 
 import os
-import pytest
 from pathlib import Path
+import pytest
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def valid_gt_csv(tmp_path):
     csv_path = Path(str_path)
 
     csv_content = "1,CAR,10,10,20,20\n2,BUS,30,30,40,40"
-    csv_path.write_text(csv_content)
+    csv_path.write_text(csv_content, encoding="utf-8")
 
     return str_path
 
@@ -42,7 +42,7 @@ def invalid_gt_csv(tmp_path):
     csv_path = Path(str_path)
 
     csv_content = "1,CAR,10,10,20,20,extra\n"
-    csv_path.write_text(csv_content)
+    csv_path.write_text(csv_content, encoding="utf-8")
 
     return str_path
 
@@ -62,7 +62,7 @@ def valid_detection_csv(tmp_path):
     csv_path = Path(str_path)
 
     csv_content = "1,CAR,10,10,20,20,0.9\n2,BUS,30,30,40,40,0.8"
-    csv_path.write_text(csv_content)
+    csv_path.write_text(csv_content, encoding="utf-8")
 
     return str_path
 
@@ -81,6 +81,6 @@ def invalid_detection_csv(tmp_path):
     csv_path = Path(str_path)
 
     csv_content = "1,CAR,10,10,20,20\n"
-    csv_path.write_text(csv_content)
+    csv_path.write_text(csv_content, encoding="utf-8")
 
     return str_path
