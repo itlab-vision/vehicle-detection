@@ -49,15 +49,15 @@ class AccuracyCalculator:
         """
         Downloading groundtruths from the file (.csv).
 
-        :param file_path: The path to the file with groundtruths.
+        :param file_path (str): The path to the file with groundtruths.
         """
         self.groundtruths = self.__format_read_data(CsvGTReader(file_path).read())
 
-    def load_detections(self, file_path):
+    def load_detections(self, file_path:str):
         """
         Loading detections from the file (.csv).
 
-        :param file_path: The path to the file with detections.
+        :param file_path (str): The path to the file with detections.
         """
         self.detections = self.__format_read_data(DetectionReader(file_path).read())
 
@@ -171,11 +171,11 @@ class AccuracyCalculator:
 
         return fp / (tp + fp) if (tp + fp) else 0
 
-    def calc_precision_recall(self, class_name):
+    def calc_precision_recall(self, class_name:str):
         """
         Calculates Precisions and Recalls.
 
-        :param class_name: Class name
+        :param class_name (str): Class name
         :return: Precisions, Recalls
         """
         if class_name not in self.detections or class_name not in self.groundtruths:
@@ -217,11 +217,11 @@ class AccuracyCalculator:
 
         return precisions_total, recalls_total
 
-    def calc_ap(self, class_name):
+    def calc_ap(self, class_name:str):
         """
         Calculates Average Precision (AP).
 
-        :param class_name: Class name
+        :param class_name (str): Class name
         :return: The value of Average Precision (AP).
         """
 
