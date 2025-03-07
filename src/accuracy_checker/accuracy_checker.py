@@ -1,4 +1,30 @@
-from src.utils.data_reader import GroundtruthReader, DetectionReader
+"""
+Accuracy Checker Module
+
+Provides a class for calculating key object detection metrics including:
+    - True Positive Rate (TPR)
+    - False Detection Rate (FDR)
+    - Average Precision (AP)
+    - Mean Average Precision (mAP) across multiple classes.
+
+Main Class:
+    AccuracyCalculator: Handles metric computation using Intersection over Union (IoU)
+    matching between ground truth annotations and detection predictions.
+    Supports loading data from CSV files via integrated data readers.
+
+Key Functionality:
+    - Loading ground truth annotations and detection results from CSV files
+    - Calculation of TP/FP/FN statistics
+    - Precision-Recall curve generation
+    - Class-specific AP calculation and multi-class mAP aggregation
+    - TPR/FDR computation for overall detection performance
+
+Dependencies:
+    - data_reader module (GroundtruthReader, DetectionReader) for CSV parsing
+    - Built-in Python math operations for IoU calculations
+"""
+
+from src.utils.data_reader import CsvGTReader, DetectionReader
 
 
 class AccuracyCalculator:
@@ -12,8 +38,8 @@ class AccuracyCalculator:
         """
         Class initialization for calculating average accuracy (AP).
 
-        :param iou_threshold: The threshold of the International Over Union (IOU) is used to determine
-                              whether the found object is consistent with the true markup.
+        :param iou_threshold: The threshold of the International Over Union (IOU) is used to
+                            determine whether the found object is consistent with the true markup.
         """
         self.iou_threshold = iou_threshold
         self.groundtruths = {}  # dict: Groundtruths (grouped by classes)
@@ -25,7 +51,7 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with groundtruths.
         """
-        self.groundtruths = self.__format_read_data(GroundtruthReader.read(file_path))
+        self.groundtruths = self.__format_read_data(CsvGTReader(file_path).read())
 
     def load_detections(self, file_path):
         """
@@ -33,69 +59,113 @@ class AccuracyCalculator:
 
         :param file_path: The path to the file with detections.
         """
-        self.detections = self.__format_read_data(DetectionReader.read(file_path))
+        self.detections = self.__format_read_data(DetectionReader(file_path).read())
 
     def calc_tp(self):
+        """
+        Calculates the total number of True Positive (TP) detections.
+
+        :return: Total number of True Positive detections.
+        """
         all_classes = self.groundtruths.keys()
         tp = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    tp_det, _, _ = self.__match_dets_to_gts([], gts)
+                    tp += tp_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_detections_by_confidence(detections)
-
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                tp_det, _, _ = self.__match_detections_to_groundtruths(dets, gts)
-                tp += tp_det
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    tp_det, _, _ = self.__match_dets_to_gts(dets, gts)
+                    tp += tp_det
 
         return tp
 
     def calc_fn(self):
+        """
+        Calculates the total number of False Negative (FN) detections.
+
+        :return: Total number of False Negative detections.
+        """
         all_classes = self.groundtruths.keys()
         fn = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    _, _, fn_det = self.__match_dets_to_gts([], gts)
+                    fn += fn_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_detections_by_confidence(detections)
-
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                _, _, fn_det = self.__match_detections_to_groundtruths(dets, gts)
-                fn += fn_det
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    _, _, fn_det = self.__match_dets_to_gts(dets, gts)
+                    fn += fn_det
 
         return fn
 
     def calc_fp(self):
+        """
+        Calculates the total number of False Positive (FN) detections.
+
+        :return: Total number of False Positive detections.
+        """
         all_classes = self.groundtruths.keys()
         fp = 0
         for class_name in all_classes:
-            detections = self.detections[class_name]
+            detections = self.detections[class_name] if class_name in self.detections else {}
             groundtruths = self.groundtruths[class_name]
+            if len(detections) == 0:
+                for frame_id, gts in groundtruths.items():
+                    _, fp_det, _ = self.__match_dets_to_gts([], gts)
+                    fp += fp_det
+            else:
+                # 1. Sorting predictions by confidence
+                all_detections = self.__sort_dets_by_confidence(detections)
 
-            # 1. Sorting predictions by confidence
-            all_detections = self.__sort_detections_by_confidence(detections)
+                # 2. Search for correspondences between detections and groundtruths
+                for frame_id, dets in all_detections.items():
+                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                    _, fp_det, _ = self.__match_dets_to_gts(dets, gts)
+                    fp += fp_det
 
-            # 2. Search for correspondences between detections and groundtruths
-            for frame_id, dets in all_detections.items():
-                gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-                _, fp_det, _ = self.__match_detections_to_groundtruths(dets, gts)
-                fp += fp_det
+        all_classes_dets = self.detections.keys()
+        for class_name in all_classes_dets:
+            if class_name not in all_classes:
+                detections = self.detections[class_name]
+                for frame_id, dets in detections.items():
+                    fp += len(dets)
 
         return fp
 
     def calc_tpr(self):
+        """
+        Calculates True Positive Rate (TPR).
+
+        :return: True Positive Rate.
+        """
         tp = self.calc_tp()
         fn = self.calc_fn()
 
         return tp / (tp + fn) if (tp + fn) else 0
 
     def calc_fdr(self):
+        """
+        Calculates False Detection Rate (FDR).
+
+        :return: False Detection Rate.
+        """
         tp = self.calc_tp()
         fp = self.calc_fp()
 
@@ -109,51 +179,43 @@ class AccuracyCalculator:
         :return: Precisions, Recalls
         """
         if class_name not in self.detections or class_name not in self.groundtruths:
-            return 0.0
+            return [], []
 
-        detections = self.detections[class_name]
         groundtruths = self.groundtruths[class_name]
 
-        # 1. Sorting predictions by confidence
-        all_detections = self.__sort_detections_by_confidence(detections)
+        tp_total, fp_total = 0, 0
+        fn_total = sum(len(groundtruths.get(frame, [])) for frame in groundtruths)
+        precisions_total, recalls_total = [], []
 
-        # 2. Search for correspondences between detections and groundtruths
-        tp, fp, fn = 0, 0, sum(len(groundtruths.get(frame, [])) for frame in groundtruths)
-        all_tp, all_fp, all_fn = [], [], []
-        for frame_id, dets in all_detections.items():
-            gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
-            tp_det, fp_det, fn_det = self.__match_detections_to_groundtruths(dets, gts)
-            tp += tp_det
-            fp += fp_det
-            fn -= (tp_det + fp_det)
-            all_tp.append(tp)
-            all_fp.append(fp)
-            all_fn.append(fn)
+        # Process sorted detections frame-by-frame
+        for frame_id, dets in self.__sort_dets_by_confidence(self.detections[class_name]).items():
+            gts = groundtruths.get(frame_id, [])  # List of all rectangles for the frame
+            tp_det, fp_det, _ = self.__match_dets_to_gts(dets, gts)
 
-        # 3. Calculate Precision and Recall for all points
-        count_gt = [len(groundtruths.get(frame, [])) for frame in groundtruths]
-        count_det = [len(groundtruths.get(frame, [])) for frame in detections]
+            tp_total += tp_det
+            fp_total += fp_det
+            fn_total -= tp_det
 
-        all_precisions = []
-        all_recalls = []
-        for tp, fp, fn, gt, det in zip(all_tp, all_fp, all_fn, count_gt, count_det):
-            if gt > 0 and det > 0:
-                precision = tp / (tp + fp)
-                recall = tp / (tp + fn)
-            elif gt == 0 and det > 0:   # tp == 0 nad fp > 0 and fn == 0
+            has_gts = len(gts) > 0
+            has_dets = len(dets) > 0
+
+            if has_gts and has_dets:
+                precision = tp_total / (tp_total + fp_total) if (tp_total + fp_total) else 0
+                recall = tp_total / (tp_total + fn_total) if (tp_total + fn_total) else 0
+            elif (not has_gts) and has_dets:    # tp == 0 nad fp > 0 and fn == 0
                 precision = 0
                 recall = 1
-            elif gt > 0 and det == 0:   # tp == 0 nad fp == 0 and fn > 0
+            elif has_gts and (not has_dets):    # tp == 0 nad fp == 0 and fn > 0
                 precision = 1
                 recall = 0
-            elif gt == 0 and det == 0:  # tp == 0 nad fp == 0 and fn == 0
+            else:                               # tp == 0 nad fp == 0 and fn == 0
                 precision = 1
                 recall = 1
 
-            all_precisions.append(precision)
-            all_recalls.append(recall)
+            precisions_total.append(precision)
+            recalls_total.append(recall)
 
-        return all_precisions, all_recalls
+        return precisions_total, recalls_total
 
     def calc_ap(self, class_name):
         """
@@ -180,7 +242,7 @@ class AccuracyCalculator:
 
         return ap
 
-    def calc_mAP(self):
+    def calc_map(self):
         """
         Calculates Mean Average Precision (mAP) for all classes.
 
@@ -203,22 +265,17 @@ class AccuracyCalculator:
         :param bbox2: The second rectangle [x1, y1, x2, y2].
         :return: The value of IoU (from 0 to 1).
         """
-        x1, y1, x2, y2 = bbox1
-        x1g, y1g, x2g, y2g = bbox2
-
-        xi1 = max(x1, x1g)
-        yi1 = max(y1, y1g)
-        xi2 = min(x2, x2g)
-        yi2 = min(y2, y2g)
+        xi1, yi1 = max(bbox1[0], bbox2[0]), max(bbox1[1], bbox2[1])
+        xi2, yi2 = min(bbox1[2], bbox2[2]), min(bbox1[3], bbox2[3])
 
         inter_area = max(0, xi2 - xi1 + 1) * max(0, yi2 - yi1 + 1)
-        bbox1_area = (x2 - x1 + 1) * (y2 - y1 + 1)
-        bbox2_area = (x2g - x1g + 1) * (y2g - y1g + 1)
+        bbox1_area = (bbox1[2] - bbox1[0] + 1) * (bbox1[3] - bbox1[1] + 1)
+        bbox2_area = (bbox2[2] - bbox2[0] + 1) * (bbox2[3] - bbox2[1] + 1)
         union_area = bbox1_area + bbox2_area - inter_area
 
         return inter_area / union_area if union_area > 0 else 0
 
-    def __match_detections_to_groundtruths(self, detections, groundtruths):
+    def __match_dets_to_gts(self, detections, groundtruths):
         """
         Compares detections with groundtruths.
 
@@ -230,12 +287,11 @@ class AccuracyCalculator:
         tp, fp, fn = 0, 0, 0
 
         for det in detections:
-            x1, y1, x2, y2, conf = det
             best_iou = 0
             best_gt_idx = -1
-            # Among all the rectangles of the groundtruths we look for the one with the highest iou value
+            # Look for the rectangle with the highest iou value
             for idx, gt in enumerate(groundtruths):
-                iou = self.__calc_iou([x1, y1, x2, y2], gt)
+                iou = self.__calc_iou(det[:-1], gt)
                 if iou > best_iou:
                     best_iou = iou
                     best_gt_idx = idx
@@ -247,12 +303,12 @@ class AccuracyCalculator:
                 # Repeat detections are also added here
                 fp += 1
 
-        fn = len(groundtruths) - len(matched) - fp
-
+        # fn = len(groundtruths) - len(matched) - fp
+        fn = len(groundtruths) - len(matched)
         return tp, fp, fn
 
     @staticmethod
-    def __sort_detections_by_confidence(detections):
+    def __sort_dets_by_confidence(detections):
         """
         Sorts detections by confidence.
 

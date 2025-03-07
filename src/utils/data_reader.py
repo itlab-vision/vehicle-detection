@@ -1,18 +1,63 @@
+"""
+Ground Truth and Detection Data Readers Module
+
+Provides abstract and concrete implementations for reading annotation data from:
+- CSV files with ground truth
+- CSV files with detection results
+- Synthetic data generation for testing
+
+Classes:
+    :GroundtruthReader: Abstract base class for data readers
+    :CsvGTReader: CSV parser for ground truth annotations
+    :FakeGTReader: Synthetic data generator for testing
+    :DetectionReader: CSV parser for detection results with confidence scores
+
+Dependencies:
+    - :csv: module for file parsing
+    - :random: module for synthetic data generation
+"""
+
 import csv
+from abc import ABC, abstractmethod
 
 
-class GroundtruthReader:
-    @staticmethod
-    def read(file_path):
+class DataReader(ABC):
+    """
+    Abstract base class for data reading implementations.
+
+    :param filepath: Path to data source file.
+    """
+
+    def __init__(self, filepath):
+        self.file_path = filepath
+
+    @abstractmethod
+    def read(self):
+        """Parse file and return structured annotation data"""
+
+class CsvGTReader(DataReader):
+    """
+    A utility class for reading and parsing groundtruth data from a CSV file.
+
+    The CSV file should have the following format:
+        frame_id, class_name, x1, y1, x2, y2
+
+    - `frame_id` (int): The frame number.
+    - `class_name` (str): The object class.
+    - `x1, y1, x2, y2` (int): Bounding box coordinates.
+    """
+
+    def read(self):
         """
         Parsing CSV file with groundtruths.
 
-        :param file_path: The path to the file with groundtruths.
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
-        parsed_data = list()
+        parsed_data = []
         try:
-            with open(file_path, mode='r', encoding='utf-8') as file:
+            with open(self.file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 6:
@@ -20,30 +65,44 @@ class GroundtruthReader:
                         continue
 
                     frame_id, class_name, x1, y1, x2, y2 = row
-                    row_data = (int(frame_id), str(class_name), float(x1), float(y1),
-                                float(x2), float(y2))
+                    row_data = (int(frame_id), str(class_name), int(x1), int(y1),
+                                int(x2), int(y2))
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {file_path}: {e}")
+            raise
+        except (ValueError, csv.Error) as e:
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
+        except OSError as e:
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
 
 
-class DetectionReader:
-    @staticmethod
-    def read(file_path):
+class DetectionReader(DataReader):
+    """
+    A utility class for reading and parsing detections data from a CSV file.
+
+    The CSV file should have the following format:
+        frame_id, class_name, x1, y1, x2, y2, confidence
+
+    - `frame_id` (int): The frame number.
+    - `class_name` (str): The object class.
+    - `x1, y1, x2, y2` (int): Bounding box coordinates.
+    - `confidence` (float): A confidence score.
+    """
+
+    def read(self):
         """
         Parsing CSV file with detections.
 
-        :param file_path: The path to the file with detections.
         :return: list[tuples] of parsed data by rows.
+        :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
+        file reading or parsing.
         """
-        parsed_data = list()
+        parsed_data = []
         try:
-            with open(file_path, mode='r', encoding='utf-8') as file:
+            with open(self.file_path, mode='r', encoding='utf-8') as file:
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 7:
@@ -51,13 +110,15 @@ class DetectionReader:
                         continue
 
                     frame_id, class_name, x1, y1, x2, y2, confidence = row
-                    row_data = (int(frame_id), str(class_name), float(x1), float(y1),
-                                float(x2), float(y2), float(confidence))
+                    row_data = (int(frame_id), str(class_name), int(x1), int(y1),
+                                int(x2), int(y2), float(confidence))
                     parsed_data.append(row_data)
 
         except FileNotFoundError:
-            print(f"File {file_path} was not found.")
-        except Exception as e:
-            print(f"Error when reading the file {file_path}: {e}")
+            raise
+        except (ValueError, csv.Error) as e:
+            raise ValueError(f"Data format error in {self.file_path}: {e}") from e
+        except OSError as e:
+            raise OSError(f"File system error accessing {self.file_path}: {e}") from e
 
         return parsed_data
