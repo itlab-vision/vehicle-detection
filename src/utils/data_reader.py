@@ -17,23 +17,27 @@ Dependencies:
     :random: for synthetic detection generation
     :abc: for abstract base class support
 """
+
 import csv
 import random
 from abc import ABC, abstractmethod
 
+
 class DataReader(ABC):
     """
     Abstract base class for data reading implementations.
-
-    :param filepath (str): Path to data source file.
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath: str):
+        """
+        :param filepath: Path to data source file.
+        """
         self.file_path = filepath
 
     @abstractmethod
     def read(self):
         """Parse and return annotation data."""
+
 
 class CsvGTReader(DataReader):
     """
@@ -53,7 +57,7 @@ class CsvGTReader(DataReader):
 
         :return: list[tuples] of parsed data by rows.
         :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
-        file reading or parsing.
+                file reading or parsing.
         """
         parsed_data = []
         try:
@@ -78,19 +82,22 @@ class CsvGTReader(DataReader):
 
         return parsed_data
 
+
 class FakeGTReader(DataReader):
-    """Synthetic ground truth data generator for testing.
+    """
+    Synthetic ground truth data generator for testing.
     
     Generates random annotations with:
     - Configurable number of frames
     - Random object classes
     - Valid bounding boxes within image dimensions
     - Reproducible results through seeding
-
-    :param file_path (str): Dummy parameter for interface compatibility
     """
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: str):
+        """
+        :param file_path: Dummy parameter for interface compatibility
+        """
         super().__init__(file_path)
         self.max_frames = 1000
         self.obj_classes = ['car', 'truck', 'bus']
@@ -99,14 +106,15 @@ class FakeGTReader(DataReader):
         random.seed(self.seed)
 
     def read(self):
-        """Generate synthetic annotation data.
-
-        :return: list[tuples] of parsed data by rows.
+        """
+        Generate synthetic annotation data.
 
         Notes:
             - 20% chance to skip frames randomly
             - 1-5 objects per frame
             - Coordinates rounded to 2 decimal places
+
+        :return: list[tuples] of parsed data by rows.
         """
         data = []
         num_frames = random.randint(self.max_frames // 2, self.max_frames)
@@ -130,7 +138,8 @@ class FakeGTReader(DataReader):
         return data
 
     def __generate_bbox(self):
-        """Generate random valid bounding box coordinates.
+        """
+        Generate random valid bounding box coordinates.
         
         :return: tuple: (x, y, width, height) coordinates within image bounds
         """
@@ -139,6 +148,7 @@ class FakeGTReader(DataReader):
         w = int(random.uniform(50, self.img_width - x))
         h = int(random.uniform(50, self.img_height - y))
         return (x, y, h, w)
+
 
 class DetectionReader(DataReader):
     """
@@ -159,7 +169,7 @@ class DetectionReader(DataReader):
 
         :return: list[tuples] of parsed data by rows.
         :raises FileNotFoundError, ValueError, csv.Error, OSError: if any error occurs during
-        file reading or parsing.
+                file reading or parsing.
         """
         parsed_data = []
         try:
