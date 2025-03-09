@@ -26,9 +26,9 @@ def test_accuracy_metrics(detection_file, expected_tp, expected_fp, expected_fn)
     acc_calc.load_groundtruths(gt_file)
     acc_calc.load_detections(det_file)
 
-    assert acc_calc.calc_tp() == expected_tp
-    assert acc_calc.calc_fp() == expected_fp
-    assert acc_calc.calc_fn() == expected_fn
+    assert acc_calc.calc_total_tp() == expected_tp
+    assert acc_calc.calc_total_fp() == expected_fp
+    assert acc_calc.calc_total_fn() == expected_fn
 
 
 @pytest.mark.parametrize("detection_file", [
