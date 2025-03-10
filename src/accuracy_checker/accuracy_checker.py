@@ -243,8 +243,6 @@ class AccuracyCalculator:
         :return: The value of Average Precision (AP).
         """
         precisions, recalls = self.calc_precision_recall(class_name)
-        recalls = [0.0] + recalls
-        precisions = [2.0] + precisions
 
         cur_max_prec = precisions[-1]
         rec_end = recalls[-1]
@@ -256,6 +254,9 @@ class AccuracyCalculator:
                 ap += (rec_end - rec_start) * cur_max_prec
                 cur_max_prec = precisions[-i]
                 rec_end = rec_start
+
+        # add (0...last point)
+        ap += (rec_end - 0.0) * cur_max_prec
 
         return ap
 
