@@ -65,8 +65,7 @@ class CsvGTReader(DataReader):
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 6:
-                        print(f"Incorrect line in the file: {row}")
-                        continue
+                        raise ValueError(f"Incorrect line in the file {self.file_path}: {row}")
 
                     frame_id, class_name, x1, y1, x2, y2 = row
                     row_data = (int(frame_id), str(class_name), int(x1), int(y1),
@@ -177,8 +176,8 @@ class DetectionReader(DataReader):
                 reader = csv.reader(file)
                 for row in reader:
                     if len(row) != 7:
-                        print(f"Incorrect line in the file: {row}")
-                        continue
+                        raise ValueError(f"Incorrect line in the file {self.file_path}: {row}")
+
                     frame_id, class_name, x1, y1, x2, y2, confidence = row
                     row_data = (int(frame_id), str(class_name), int(x1), int(y1),
                                 int(x2), int(y2), float(confidence))

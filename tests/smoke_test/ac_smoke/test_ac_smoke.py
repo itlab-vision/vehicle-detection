@@ -122,11 +122,11 @@ def test_small_data_map(detection_file, expected_map):
 
 @pytest.mark.parametrize(
         "detection_file, expected_tp, expected_fp, expected_fn,", [
-        ("detections_regular.csv", 1145, 45, 51),
-        ("detections_fp.csv", 1100, 244, 95),
-        ("detections_low_iou.csv", 611, 572, 576),
-        ("detections_multiple.csv", 1153, 426, 45),
-        ("detections_wrong_class.csv", 769, 423, 215)
+        ("detections_regular.csv", 1145, 45, 55),
+        ("detections_fp.csv", 1100, 244, 100),
+        ("detections_low_iou.csv", 611, 572, 589),
+        ("detections_multiple.csv", 1153, 426, 47),
+        ("detections_wrong_class.csv", 769, 423, 431)
     ])
 def test_big_data_accuracy_metrics(detection_file, expected_tp, expected_fp, expected_fn):
     """Test TP, FP, FN on big data"""
@@ -148,7 +148,7 @@ def test_big_data_accuracy_metrics(detection_file, expected_tp, expected_fp, exp
         ("detections_fp.csv", 0.92, 0.18),
         ("detections_low_iou.csv", 0.51, 0.48),
         ("detections_multiple.csv", 0.96, 0.27),
-        ("detections_wrong_class.csv", 0.78, 0.35),
+        ("detections_wrong_class.csv", 0.64, 0.35),
     ])
 def test_big_data_tpr_fdr(detection_file, expected_tpr, expected_fdr):
     """Test TPR and FDR on big data"""

@@ -85,16 +85,12 @@ class AccuracyCalculator:
             detections = self.dets_by_frames[class_name] \
                 if class_name in self.dets_by_frames else {}
 
-            groundtruths = self.gts_by_frames[class_name]
-            if len(detections) == 0:
-                for frame_id, gts in groundtruths.items():
-                    tp_det, _, _ = self.__match_grouped_dets_to_gts([], gts)
-                    tp += tp_det
-            else:
+            if len(detections) != 0:
                 # 1. Sorting predictions by confidence
                 all_detections = self.__sort_grouped_dets_by_conf(detections)
 
                 # 2. Search for correspondences between detections and groundtruths
+                groundtruths = self.gts_by_frames[class_name]
                 for frame_id, dets in all_detections.items():
                     gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
                     tp_det, _, _ = self.__match_grouped_dets_to_gts(dets, gts)
@@ -114,18 +110,16 @@ class AccuracyCalculator:
             detections = self.dets_by_frames[class_name] \
                 if class_name in self.dets_by_frames else {}
 
-            groundtruths = self.gts_by_frames[class_name]
             if len(detections) == 0:
-                for frame_id, gts in groundtruths.items():
-                    _, _, fn_det = self.__match_grouped_dets_to_gts([], gts)
-                    fn += fn_det
+                fn += len(self.gts_raw[class_name])
             else:
                 # 1. Sorting predictions by confidence
                 all_detections = self.__sort_grouped_dets_by_conf(detections)
 
                 # 2. Search for correspondences between detections and groundtruths
-                for frame_id, dets in all_detections.items():
-                    gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
+                groundtruths = self.gts_by_frames[class_name]
+                for frame_id, gts in groundtruths.items():
+                    dets = all_detections.get(frame_id, [])
                     _, _, fn_det = self.__match_grouped_dets_to_gts(dets, gts)
                     fn += fn_det
 
@@ -143,16 +137,12 @@ class AccuracyCalculator:
             detections = self.dets_by_frames[class_name] \
                 if class_name in self.dets_by_frames else {}
 
-            groundtruths = self.gts_by_frames[class_name]
-            if len(detections) == 0:
-                for frame_id, gts in groundtruths.items():
-                    _, fp_det, _ = self.__match_grouped_dets_to_gts([], gts)
-                    fp += fp_det
-            else:
+            if len(detections) != 0:
                 # 1. Sorting predictions by confidence
                 all_detections = self.__sort_grouped_dets_by_conf(detections)
 
                 # 2. Search for correspondences between detections and groundtruths
+                groundtruths = self.gts_by_frames[class_name]
                 for frame_id, dets in all_detections.items():
                     gts = groundtruths.get(frame_id, [])    # List of all rectangles for the frame
                     _, fp_det, _ = self.__match_grouped_dets_to_gts(dets, gts)
