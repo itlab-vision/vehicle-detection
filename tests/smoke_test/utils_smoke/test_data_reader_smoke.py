@@ -2,6 +2,7 @@
 Data Reader Modules tests.
 """
 
+import pytest
 from src.utils.data_reader import CsvGTReader, DetectionReader
 
 
@@ -25,17 +26,14 @@ def test_csv_gt_reader_valid_file(valid_gt_csv):
 
 def test_csv_gt_reader_invalid_line(invalid_gt_csv):
     """
-    Test that CsvGTReader correctly handles an invalid ground truth CSV file.
+    Test that CsvGTReader correctly raises ValueError on an invalid ground truth CSV file.
 
     Args:
         invalid_gt_csv (str): Path to an invalid ground truth CSV file.
-
-    Asserts:
-        - The reader skips the malformed line and returns an empty list.
     """
-    reader = CsvGTReader(invalid_gt_csv)
-    data = reader.read()
-    assert len(data) == 0
+    with pytest.raises(ValueError):
+        reader = CsvGTReader(invalid_gt_csv)
+        reader.read()
 
 def test_detection_reader_valid_file(valid_detection_csv):
     """
@@ -57,14 +55,11 @@ def test_detection_reader_valid_file(valid_detection_csv):
 
 def test_detection_reader_invalid_line(invalid_detection_csv):
     """
-    Test that DetectionReader correctly handles an invalid detection CSV file.
+    Test that DetectionReader correctly raises ValueError on an invalid detection CSV file.
 
     Args:
         invalid_detection_csv (str): Path to an invalid detection CSV file.
-
-    Asserts:
-        - The reader skips the malformed line and returns an empty list.
     """
-    reader = DetectionReader(invalid_detection_csv)
-    data = reader.read()
-    assert len(data) == 0
+    with pytest.raises(ValueError):
+        reader = DetectionReader(invalid_detection_csv)
+        reader.read()
