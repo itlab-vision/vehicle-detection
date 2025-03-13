@@ -25,7 +25,7 @@ class Writer(ABC):
         """
         Write a single data row to the output file.
 
-        :param data (tuple): Data row to be written.
+        :param data: Data row to be written.
         :raise OSError: if file system operations fail.
         """
     @abstractmethod
@@ -36,7 +36,7 @@ class Writer(ABC):
         """
         Factory method to create format-specific Writer instances.
         
-        :param output_path (str): Absolute path to output file
+        :param output_path: Absolute path to output file
             
         :return Writer: Concrete Writer instance for specified format
             
@@ -55,11 +55,11 @@ class Writer(ABC):
 class CsvWriter(Writer):
     """CSV format writer implementation."""
 
-    def __init__(self, output_path):
+    def __init__(self, output_path: str):
         """
         Initialize CSV writer.
 
-        :param output_path (Path): Absolute path to CSV file. 
+        :param output_path: Absolute path to CSV file. 
         """
         self.output_path = output_path
         self.file = None

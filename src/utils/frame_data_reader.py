@@ -10,8 +10,8 @@ Classes:
     :ImgDataReader: Concrete implementation for image directories
 
 Dependencies:
-    - :OpenCV (cv2): for image reading
-    - :os: module for file operations
+    :OpenCV (cv2): for image reading
+    :pathlib: module for file operations
 """
 from pathlib import Path
 from abc import ABC, abstractmethod
