@@ -77,6 +77,7 @@ def main():
     Shows visualization using the following workflow:
     
         1. Creates FrameDataReader based on input mode (video/image)
+        2. Initializes a writer with 'write_path' implementation
         2. Initializes a detector with 'fake' implementation
         3. Loads groundtruth data if provided
         4. Configures visualizer with reader, detector, and groundtruth
@@ -91,7 +92,8 @@ def main():
         reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
         writer = Writer.create(args.write_path)
         detector = Detector.create( "fake" )
-        visualizer = Visualize( reader, writer, detector, FakeGTReader(args.groundtruth_path).read() )
+        gtreader = FakeGTReader(args.groundtruth_path)
+        visualizer = Visualize( reader, writer, detector, gtreader.read() )
         visualizer.show()
     except Exception as e:
         print(e)
