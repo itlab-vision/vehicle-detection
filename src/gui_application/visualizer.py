@@ -58,7 +58,7 @@ class Visualize:
                 for box in self.detector.detect(image):
                     self.__draw_box(image, box, (255, 112, 166))
                     if self.writer:
-                        self.writer.write((frame_idx,) + box)
+                        self.writer.write((frame_idx, *box))
                 if self.gt_layout:
                     for box in self.__get_groundtruth_bboxes(frame_idx):
                         self.__draw_box(image, box, (0, 255, 0))

@@ -99,7 +99,8 @@ class FakeDetector(Detector):
         bboxes = []
         num_boxes = random.randint(0, 5)
         chance = random.random()
-        if (chance < 0.5): return []
+        if chance < 0.5:
+            return []
         for _ in range(num_boxes):
             if width < 2 or height < 2:
                 continue

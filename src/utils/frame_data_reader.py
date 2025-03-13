@@ -117,7 +117,7 @@ class ImgDataReader(FrameDataReader):
             raise ValueError(f"Images directory does not exist: {dir_path}")
         self.image_files = [
             str(file) for file in dir_path.iterdir()
-            if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".tiff"} 
+            if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
         ]
 
     def __iter__(self):
