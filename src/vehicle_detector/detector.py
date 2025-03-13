@@ -97,7 +97,9 @@ class FakeDetector(Detector):
             return []
         height, width = image.shape[:2]
         bboxes = []
-        num_boxes = random.randint(0, 7)
+        num_boxes = random.randint(0, 5)
+        chance = random.random()
+        if (chance < 0.5): return []
         for _ in range(num_boxes):
             if width < 2 or height < 2:
                 continue
