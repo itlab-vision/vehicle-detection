@@ -89,11 +89,11 @@ def main():
     """
     try:
         args = cli_argument_parser()
-        reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
+        reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path))
         writer = Writer.create(args.write_path)
         detector = Detector.create( "fake" )
         gtreader = dr.FakeGTReader(args.groundtruth_path)
-        visualizer = Visualize( reader, writer, detector, gtreader.read() )
+        visualizer = Visualize(reader, writer, detector, gtreader.read())
         visualizer.show()
     except Exception as e:
         print(e)
