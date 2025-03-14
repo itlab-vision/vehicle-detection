@@ -1,19 +1,24 @@
-"""
-CLI application "Vehicle detector"
-"""
-import argparse
 import sys
-from pathlib import Path
+import os
 
-sys.path.append(str(Path(__file__).parent.parent))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
 
 from src.gui_application.visualizer import Visualize
-from src.utils.data_reader import FakeGTReader
+from src.utils.data_reader import GroundtruthReader, FakeGroundtruthReader
 from src.utils.frame_data_reader import FrameDataReader
 from src.vehicle_detector.detector import Detector
+import datetime
+import argparse
+import os
+from PIL import Image
+
+import cv2 as cv
+import numpy as np
+import yaml
 
 def cli_argument_parser():
-    """
+        """
     Parse command-line arguments for the visualizer application.
 
     Defines and parses arguments for specifying input mode (image/video), file paths,
@@ -33,13 +38,17 @@ def cli_argument_parser():
             If required arguments are missing or invalid combinations are provided
     """
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('-y', '--yaml',
+                        type=str,
+                        help = 'Path to a yaml file',
+                        dest='yamlFile',
+                        required=False)
     parser.add_argument('-t', '--mode',
                         help='Mode (\'image\', \'video\')',
                         type=str,
                         dest='mode',
                         choices=['image', 'video'],
-                        required=True)
+                        required=False)
     parser.add_argument('-v', '--video',
                         help='Path to a video file',
                         type=str,
@@ -47,47 +56,83 @@ def cli_argument_parser():
     parser.add_argument('-i', '--image',
                         help='Path to images',
                         type=str,
-                        dest='images_path')
+                        dest='images_path',
+                        required=False)
     parser.add_argument('-g', '--groundtruth',
                         help='Path to a file of groundtruth',
                         type=str,
                         dest='groundtruth_path',
                         required=False)
     parser.add_argument('-m', '--model',
-                        help='Path to a model',
+                        help='Model (\'MobileNet\')',
                         type=str,
-                        dest='model_path',
-                        required=True,
-                        default=None)
+                        dest='model',
+                        choices=['MobileNet', 'YOLOv3-tiny'],
+                        required=False,
+                        default='MobileNet')
+    parser.add_argument('-cl', '--path_classes',
+                        help='Path to a file of classes',
+                        type=str,
+                        dest='path_classes',
+                        required=False)
+    parser.add_argument('-wp', '--path_weights',
+                        help='Path to a file of weights',
+                        type=str,
+                        dest='path_weights',
+                        required=False)
+    parser.add_argument('-cp', '--path_config',
+                        help='Path to a file of config',
+                        type=str,
+                        dest='path_config',
+                        required=False)
+    parser.add_argument('-c', '-conf', 
+                        help='Confidence threshold',
+                        type=float, 
+                        dest='conf',
+                        required=False)
+    parser.add_argument('-n', '-nms',
+                        help='Overlap threshold',
+                        type=float, 
+                        dest='nms',
+                        required=False)
+    parser.add_argument('-me', '-mean',
+                        help='The average picture',
+                        nargs=3,
+                        type = float,
+                        dest='mean',
+                        required=False)
+    
     args = parser.parse_args()
     return args
 
+#некоторое подобие main 
 def main():
-    """
-    Main execution function for the visualizer application.
-
-    Initializes data reader, detector, and visualizer components based on CLI arguments.
-    Shows visualization using the following workflow:
+   
+    args = cli_argument_parser()
     
-        1. Creates FrameDataReader based on input mode (video/image)
-        2. Initializes a detector with 'fake' implementation
-        3. Loads groundtruth data if provided
-        4. Configures visualizer with reader, detector, and groundtruth
-        5. Starts visualization display
-
-    Requires:
-        - Either video_path or images_path argument must match the specified mode
-        - model_path must point to a valid model file
-    """
-    try:
-        args = cli_argument_parser()
-        reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
-        detector = Detector.create( "fake" )
-        visualizer = Visualize( reader, detector, FakeGTReader(args.groundtruth_path).read() )
+    if args.yamlFile != None:
+        
+        with open(args.yamlFile) as fh:
+            data = yaml.safe_load(fh)
+        data = data[0]
+        
+        reader = 0
+        if data['mode'] == 'image':
+            reader = FrameDataReader.create(data['mode'], data['images_path'])
+        elif data['mode'] == 'video':
+            reader = FrameDataReader.create(data['mode'], data['video_path'])
+            
+        adapter = None
+        detector = Detector.create( data['model'], data['path_classes'], data['path_weights'], data['path_config'], float(data['conf']), float(data['nms']), list(map(int, data['mean'].split(' '))))
+        visualizer = Visualize( reader, detector, GroundtruthReader().read(data['groundtruth_path']) )
         visualizer.show()
-    except Exception as e:
-        print(e)
+        
+    else:
+        reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
+        adapter = None
+        detector = Detector.create( args.model, args.path_classes, args.path_weights, args.path_config, args.conf, args.nms, args.mean)
+        visualizer = Visualize( reader, detector, GroundtruthReader().read(args.groundtruth_path) )
+        visualizer.show()
 
 if __name__ == '__main__':
     main()
-    
