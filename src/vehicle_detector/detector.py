@@ -1,5 +1,5 @@
 import cv2 as cv
-from cv2.dnn import DNN_BACKEND_CUDA, DNN_BACKEND_OPENCV
+#from cv2.dnn import DNN_BACKEND_CUDA, DNN_BACKEND_OPENCV
 import numpy as np
 import random
 from abc import ABC, abstractmethod
