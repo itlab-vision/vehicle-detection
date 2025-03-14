@@ -60,7 +60,7 @@ class AdapterYOLO(Adapter):
         self.nms = nms
         self.class_names = class_names
         
-    def sigmoid(self, x):
+    def sigmoid(x):
         return 1 / (1 + np.exp(-x))
     
     def postProcessing(self, output, image_width, image_height):
@@ -166,7 +166,6 @@ class FakeDetector(Detector):
         if seed is not None:
             random.seed(seed)
 
-    @staticmethod
     def detect(self, image):
         if image is None or image.size == 0:
             return []
