@@ -1,0 +1,10 @@
+[MASTER]
+init-hook='import sys; sys.path.append("/vehicle-detection")'
+load-plugins=pylint.extensions.docparams
+rcfile=.pylintrc
+
+[TYPECHECK]
+ignored-modules = cv2
+
+[MESSAGES CONTROL]
+disable=C0413,R0903,W0718,W0719,W0707,E0401

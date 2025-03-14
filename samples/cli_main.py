@@ -18,6 +18,25 @@ import numpy as np
 import yaml
 
 def cli_argument_parser():
+        """
+    Parse command-line arguments for the visualizer application.
+
+    Defines and parses arguments for specifying input mode (image/video), file paths,
+    groundtruth data, and model path. Ensures mutual exclusivity between video and image paths
+    based on the selected mode.
+
+    Returns:
+        argparse.Namespace: Parsed arguments with the following attributes:
+            - mode (str): Input mode ('image' or 'video'), required
+            - video_path (str): Path to video file (required if mode is 'video')
+            - images_path (str): Path to image directory (required if mode is 'image')
+            - groundtruth_path (str): Path to groundtruth data file, optional
+            - model_path (str): Path to model file, required
+
+    Raises:
+        argparse.ArgumentError:
+            If required arguments are missing or invalid combinations are provided
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-y', '--yaml',
                         type=str,
