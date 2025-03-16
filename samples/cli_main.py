@@ -12,6 +12,7 @@ from src.utils.data_reader import FakeGTReader
 from src.utils.frame_data_reader import FrameDataReader
 from src.vehicle_detector.detector import Detector
 
+
 def cli_argument_parser():
     """
     Parse command-line arguments for the visualizer application.
@@ -88,6 +89,6 @@ def main():
     except Exception as e:
         print(e)
 
+
 if __name__ == '__main__':
     main()
-    
