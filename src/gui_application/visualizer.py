@@ -72,10 +72,10 @@ class Visualize:
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
         except Exception as e:
+            if self.writer:
+                self.writer.clear()
             raise Exception(e)
         finally:
-            if self.writer:
-                self.writer.close()
             cv.destroyAllWindows()
 
     @staticmethod

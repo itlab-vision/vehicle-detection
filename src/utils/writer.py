@@ -29,8 +29,10 @@ class Writer(ABC):
         :raise OSError: if file system operations fail.
         """
     @abstractmethod
-    def close(self):
-        """Close the fuke resource."""
+    def clear(self):
+        """
+        Truncate file to 0 bytes.
+        """
     @staticmethod
     def create(output_path: str):
         """
@@ -47,7 +49,8 @@ class Writer(ABC):
         if not path.is_absolute():
             raise ValueError(f"Path must be absolute. Got: {output_path}")
         resolved_path = path.resolve()
-
+        if not resolved_path.parent.exists():
+            raise FileNotFoundError(f"Parent directory {resolved_path.parent} does not exist")
         if resolved_path.suffix.lower() == '.csv':
             return CsvWriter(resolved_path)
         raise ValueError(f"Unsupported format: {resolved_path.suffix}")
@@ -62,8 +65,7 @@ class CsvWriter(Writer):
         :param output_path: Absolute path to CSV file. 
         """
         self.output_path = output_path
-        self.file = None
-        self.writer = None
+
 
     def write(self, data: tuple):
         """
@@ -73,10 +75,9 @@ class CsvWriter(Writer):
         - Proper CSV escaping
         """
         try:
-            if not self.file:
-                self.file = open(self.output_path, "w", newline="", encoding="utf-8")
-                self.writer = csv.writer(self.file)
-            self.writer.writerow(data)
+            with open(self.output_path, "a", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerow(data)
         except OSError as e:
             raise OSError(f"File system error accessing {self.output_path}: {e}") from e
 
@@ -84,11 +85,8 @@ class CsvWriter(Writer):
         """
         Truncate file to 0 bytes. 
         """
-        if self.file:
-            self.file.truncate(0)
-
-    def close(self):
-        """Safely close file handle if opened."""
-        if self.file:
-            self.file.close()
-            self.file = None
+        try:
+            with open(self.output_path, "w", newline="", encoding="utf-8"):
+                pass
+        except OSError as e:
+            raise OSError(f"Failed to clear file {self.output_path}: {e}") from e
