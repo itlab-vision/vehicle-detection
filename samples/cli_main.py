@@ -8,8 +8,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.gui_application.visualizer import Visualize
-from src.utils.data_reader import FakeGTReader
+from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
+from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
 
 
@@ -60,6 +61,12 @@ def cli_argument_parser():
                         dest='model_path',
                         required=True,
                         default=None)
+    parser.add_argument('-w', '--write',
+                        help='Full path to the file to write.',
+                        type=str,
+                        dest='write_path',
+                        required=False,
+                        default=None)
     args = parser.parse_args()
     return args
 
@@ -71,6 +78,7 @@ def main():
     Shows visualization using the following workflow:
     
         1. Creates FrameDataReader based on input mode (video/image)
+        2. Initializes a writer with 'write_path' implementation
         2. Initializes a detector with 'fake' implementation
         3. Loads groundtruth data if provided
         4. Configures visualizer with reader, detector, and groundtruth
@@ -82,9 +90,11 @@ def main():
     """
     try:
         args = cli_argument_parser()
-        reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
+        reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path))
+        writer = Writer.create(args.write_path)
         detector = Detector.create( "fake" )
-        visualizer = Visualize( reader, detector, FakeGTReader(args.groundtruth_path).read() )
+        gtreader = dr.FakeGTReader(args.groundtruth_path)
+        visualizer = Visualize(reader, writer, detector, gtreader.read())
         visualizer.show()
     except Exception as e:
         print(e)

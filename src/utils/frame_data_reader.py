@@ -10,11 +10,10 @@ Classes:
     :ImgDataReader: Concrete implementation for image directories
 
 Dependencies:
-    - :OpenCV (cv2): for image reading
-    - :os: module for file operations
+    :OpenCV (cv2): for image reading
+    :pathlib: module for file operations
 """
-
-import os
+from pathlib import Path
 from abc import ABC, abstractmethod
 import cv2 as cv
 
@@ -121,12 +120,12 @@ class ImgDataReader(FrameDataReader):
         :raise: ValueError: For invalid directory path
         """
         self.index = 0
-        self.directory_path = dir_path
-        if not os.path.exists(dir_path):
+        dir_path = Path(dir_path)
+        if not dir_path.exists():
             raise ValueError(f"Images directory does not exist: {dir_path}")
         self.image_files = [
-            os.path.join(dir_path, f) for f in os.listdir(dir_path)
-            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tiff"))
+            str(file) for file in dir_path.iterdir()
+            if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
         ]
 
     def __iter__(self):

@@ -15,6 +15,7 @@ Dependencies:
 
 import cv2 as cv
 from src.utils.frame_data_reader import FrameDataReader
+from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
 
 
@@ -26,7 +27,7 @@ class Visualize:
     Uses different colors for detected boxes (blue) and groundtruth boxes (green).
     """
 
-    def __init__(self, datareader:FrameDataReader, detector:Detector, gt_data:list):
+    def __init__(self, datareader:FrameDataReader, writer:Writer, detector:Detector, gt_data:list):
         """
         Initialize visualization components with data sources.
 
@@ -35,6 +36,7 @@ class Visualize:
         :param gt_data: Loaded groundtruth in format [[frame_idx, label, x1, y1, x2, y2], ...]
         """
         self.datareader = datareader
+        self.writer = writer
         self.detector = detector
         self.gt_layout = gt_data
 
@@ -45,7 +47,9 @@ class Visualize:
         Processes frames sequentially with the following workflow:
         
         1. Retrieves next frame from data reader
-        2. Runs object detection and draws blue bounding boxes
+        2. Runs object detection
+        3. Write retrieved data from detection if available
+        4. Draws blue bounding boxes
         3. Overlays green groundtruth boxes if available
         4. Displays combined visualization
         5. Handles exit condition (Q key press)
@@ -59,6 +63,8 @@ class Visualize:
                     break
                 for box in self.detector.detect(image):
                     self.__draw_box(image, box, (255, 112, 166))
+                    if self.writer:
+                        self.writer.write((frame_idx, *box))
                 if self.gt_layout:
                     for box in self.__get_groundtruth_bboxes(frame_idx):
                         self.__draw_box(image, box, (0, 255, 0))
@@ -66,6 +72,8 @@ class Visualize:
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
         except Exception as e:
+            if self.writer:
+                self.writer.clear()
             raise Exception(e)
         finally:
             cv.destroyAllWindows()
