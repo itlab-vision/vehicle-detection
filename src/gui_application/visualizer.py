@@ -14,6 +14,7 @@ Dependencies:
 """
 
 import cv2 as cv
+from tqdm import tqdm
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
@@ -39,6 +40,7 @@ class Visualize:
         self.writer = writer
         self.detector = detector
         self.gt_layout = gt_data
+        self.progress_bar = None
 
     def show(self):
         """
@@ -48,11 +50,11 @@ class Visualize:
         
         1. Retrieves next frame from data reader
         2. Runs object detection
-        3. Write retrieved data from detection if available
+        3. Write retrieved data from detection and write in file if available
         4. Draws blue bounding boxes
-        3. Overlays green groundtruth boxes if available
-        4. Displays combined visualization
-        5. Handles exit condition (Q key press)
+        5. Overlays green groundtruth boxes if available
+        6. Displays combined visualization
+        7. Handles exit condition (Q key press)
         
         Performs cleanup on exit or error, closing all OpenCV windows.
         """
@@ -68,6 +70,7 @@ class Visualize:
                 if self.gt_layout:
                     for box in self.__get_groundtruth_bboxes(frame_idx):
                         self.__draw_box(image, box, (0, 255, 0))
+                cv.imshow("Detection", image)
                 frame_idx+=1
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
@@ -78,6 +81,56 @@ class Visualize:
         finally:
             cv.destroyAllWindows()
 
+    def silent_show(self):
+        """
+        Processes frames sequentially with the following workflow:
+        1. Retrieves next frame from data reader
+        2. Runs object detection
+        3. Write retrieved data from detection and write in file if available
+        4. Progress bar show proccess of work detector
+        5. Handles exit condition (Q key press)
+        """
+        try:
+            self.__create_progress_bar()
+            frame_idx = 0
+            for image in self.datareader:
+                if image is None:
+                    break
+                for box in self.detector.detect(image):
+                    if self.writer:
+                        self.writer.write((frame_idx, *box))
+                frame_idx += 1
+                self.__update_progress_bar()
+                if 0xFF == ord('q'):
+                    break
+        except Exception as e:
+            if self.writer:
+                self.writer.clear()
+            raise Exception(e)
+        finally:
+            self.__close_progress_bar()
+
+    def __create_progress_bar(self):
+        """Initialize progress bar with total frame count"""
+        total_frames = self.datareader.get_total_frames()
+        self.progress_bar = tqdm(
+            total=total_frames,
+            desc="Processing frames",
+            unit="frame",
+            dynamic_ncols=True
+        )
+    
+    def __update_progress_bar(self):
+        """Update progress bar state"""
+        if self.progress_bar:
+            self.progress_bar.update(1)
+    
+    def __close_progress_bar(self):
+        """Properly close progress bar"""
+        if self.progress_bar:
+            self.progress_bar.close()
+            self.progress_bar = None  
+  
     @staticmethod
     def __draw_box(image, box, color):
         """
@@ -94,7 +147,6 @@ class Visualize:
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
-        cv.imshow("Detection", image)
 
     def __get_groundtruth_bboxes(self, frame_idx):
         """
