@@ -119,18 +119,18 @@ class Visualize:
             unit="frame",
             dynamic_ncols=True
         )
-    
+
     def __update_progress_bar(self):
         """Update progress bar state"""
         if self.progress_bar:
             self.progress_bar.update(1)
-    
+
     def __close_progress_bar(self):
         """Properly close progress bar"""
         if self.progress_bar:
             self.progress_bar.close()
-            self.progress_bar = None  
-  
+            self.progress_bar = None
+
     @staticmethod
     def __draw_box(image, box, color):
         """

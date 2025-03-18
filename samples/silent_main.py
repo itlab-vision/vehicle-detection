@@ -102,7 +102,7 @@ def main():
         print(f"TPR: {accurcheck.calc_tpr()}")
         print(f"FDR: {accurcheck.calc_fdr()}")
         print(f"MAP: {accurcheck.calc_map()}")
-    
+
     except Exception as e:
         print(e)
 
