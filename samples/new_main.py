@@ -7,8 +7,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application.visualizer import Visualizer
-from src.gui_application.cli_visualizer import CLIVisualize
+from src.gui_application import visualizer as vis
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
@@ -75,31 +74,28 @@ def config_visual_main(args: argparse.Namespace):
     """some"""
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
-            detector = Detector.create( "vehicle" ),
-            writer = Writer.create(args.write_path),
-            visualizer = Visualizer(),
-            cli_visual = None,
-            gt_reader = dr.CsvGTReader(args.groundtruth_path))
+            detector = Detector.create( "fake" ),
+            visualizer = vis.GUIVisualizer(),
+            writer = Writer.create(args.write_path) if args.write_path else None,
+            gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
 def config_cli_main(args: argparse.Namespace):
     """some"""
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "fake" ),
-            writer = Writer.create(args.write_path),
-            visualizer = None,
-            cli_visual = CLIVisualize(),
-            gt_reader = dr.CsvGTReader(args.groundtruth_path))
+            visualizer = vis.CLIVisualizer(),
+            writer = Writer.create(args.write_path) if args.write_path else None,
+            gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
 def config_fake_main(args: argparse.Namespace):
     """some"""
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "fake" ),
-            writer = Writer.create(args.write_path),
-            visualizer = Visualizer(),
-            cli_visual = CLIVisualize(),
-            gt_reader = dr.FakeGTReader(args.groundtruth_path))
+            visualizer = vis.GUIVisualizer(),
+            writer = Writer.create(args.write_path) if args.write_path else None,
+            gt_reader = dr.FakeGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
 def main():
     """
