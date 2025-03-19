@@ -3,14 +3,16 @@ Computer Vision Visualization Module
 
 Provides functionality for visualizing object detection results alongside ground truth data.
 Handles both image sequences and video inputs with the following components:
-- Argument parsing for input configuration
 - Frame data reading (images/video)
-- Fake object detection implementation
+- Object detection implementation
 - Visualization of detection vs groundtruth comparisons
 
 Dependencies:
 - OpenCV (cv2) for image processing and display
-- argparse for command-line argument handling
+- tqdm for progress bar processing
+- FrameDataReader for getting images
+- Writer for write detections in file
+- Detector for getting detections in image
 """
 
 import cv2 as cv
@@ -60,6 +62,7 @@ class Visualize:
         """
         try:
             frame_idx = 0
+            self.__create_progress_bar()
             for image in self.datareader:
                 if image is None:
                     break
@@ -71,6 +74,7 @@ class Visualize:
                     for box in self.__get_groundtruth_bboxes(frame_idx):
                         self.__draw_box(image, box, (0, 255, 0))
                 cv.imshow("Detection", image)
+                self.__update_progress_bar()
                 frame_idx+=1
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
@@ -79,6 +83,7 @@ class Visualize:
                 self.writer.clear()
             raise Exception(e)
         finally:
+            self.__close_progress_bar()
             cv.destroyAllWindows()
 
     def silent_show(self):

@@ -31,6 +31,12 @@ class FrameDataReader(ABC):
     """
 
     @abstractmethod
+    def get_total_frames(self):
+        """
+        :return int: Number of images
+        """
+
+    @abstractmethod
     def __iter__(self):
         """
         :return self: Iterator instance
@@ -82,6 +88,9 @@ class VideoDataReader(FrameDataReader):
         if not self.cap.isOpened():
             raise ValueError(f"Cannot open video file: {video_path}")
 
+    def get_total_frames(self):
+        return int(self.cap.get(cv.CAP_PROP_FRAME_COUNT))
+
     def __iter__(self):
         """
         :return: self: Iterator instance
@@ -127,6 +136,9 @@ class ImgDataReader(FrameDataReader):
             str(file) for file in dir_path.iterdir()
             if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
         ]
+
+    def get_total_frames(self):
+        return len(self.image_files)
 
     def __iter__(self):
         """

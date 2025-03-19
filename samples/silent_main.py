@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application.visualizer import Visualize
+from src.gui_application import cli_visualizer as vis
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
@@ -93,10 +93,9 @@ def main():
         reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path))
         writer = Writer.create(args.write_path)
         detector = Detector.create( "fake" )
-        gtreader = dr.FakeGTReader(args.groundtruth_path)
         accurcheck = AccuracyCalculator()
-        visualizer = Visualize(reader, writer, detector, gtreader.read())
-        visualizer.silent_show()
+        visualizer = vis.CLIVisualize(reader, writer, detector)
+        visualizer.show()
         accurcheck.load_detections(args.write_path)
         accurcheck.load_groundtruths(args.groundtruth_path)
         print(f"TPR: {accurcheck.calc_tpr()}")
