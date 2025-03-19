@@ -49,8 +49,10 @@ class Writer(ABC):
         if not path.is_absolute():
             raise ValueError(f"Path must be absolute. Got: {output_path}")
         resolved_path = path.resolve()
+
         if not resolved_path.parent.exists():
             raise FileNotFoundError(f"Parent directory {resolved_path.parent} does not exist")
+
         if resolved_path.suffix.lower() == '.csv':
             return CsvWriter(resolved_path)
         raise ValueError(f"Unsupported format: {resolved_path.suffix}")
@@ -65,6 +67,7 @@ class CsvWriter(Writer):
         :param output_path: Absolute path to CSV file. 
         """
         self.output_path = output_path
+        self.first_write = True
 
 
     def write(self, data: list[tuple]):
@@ -75,7 +78,9 @@ class CsvWriter(Writer):
         - Proper CSV escaping
         """
         try:
-            with open(self.output_path, "a", newline="", encoding="utf-8") as file:
+            mode = "w" if self.first_write else "a"
+            self.first_write = False
+            with open(self.output_path, mode, newline="", encoding="utf-8") as file:
                 writer = csv.writer(file)
                 writer.writerows(data)
         except OSError as e:

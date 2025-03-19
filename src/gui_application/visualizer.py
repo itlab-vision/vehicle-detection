@@ -14,11 +14,7 @@ Dependencies:
 """
 
 import cv2 as cv
-from src.utils.frame_data_reader import FrameDataReader
-from src.utils.writer import Writer
-from src.vehicle_detector.detector import Detector
-
-
+import numpy
 class Visualize:
     """
     Visualization controller for detection/groundtruth comparison.
@@ -27,60 +23,13 @@ class Visualize:
     Uses different colors for detected boxes (blue) and groundtruth boxes (green).
     """
 
-    def __init__(self, datareader:FrameDataReader, writer:Writer, detector:Detector, gt_data:list):
+    def __init__(self):
         """
         Initialize visualization components with data sources.
-
-        :param datareader: Input source for frames (video/images)
-        :param detector: Detection component
-        :param gt_data: Loaded groundtruth in format [[frame_idx, label, x1, y1, x2, y2], ...]
         """
-        self.datareader = datareader
-        self.writer = writer
-        self.detector = detector
-        self.gt_layout = gt_data
-
-    def show(self):
-        """
-        Main visualization loop.
-        
-        Processes frames sequentially with the following workflow:
-        
-        1. Retrieves next frame from data reader
-        2. Runs object detection
-        3. Write retrieved data from detection if available
-        4. Draws blue bounding boxes
-        3. Overlays green groundtruth boxes if available
-        4. Displays combined visualization
-        5. Handles exit condition (Q key press)
-        
-        Performs cleanup on exit or error, closing all OpenCV windows.
-        """
-        try:
-            frame_idx = 0
-            for image in self.datareader:
-                if image is None:
-                    break
-                for box in self.detector.detect(image):
-                    self._draw_box(image, box, (255, 112, 166))
-                    if self.writer:
-                        self.writer.write((frame_idx, *box))
-                if self.gt_layout:
-                    for box in self._get_groundtruth_bboxes(frame_idx):
-                        self._draw_box(image, box, (0, 255, 0))
-                frame_idx+=1
-                cv.imshow("Detection", image)
-                if cv.waitKey(25) & 0xFF == ord('q'):
-                    break
-        except Exception as e:
-            if self.writer:
-                self.writer.clear()
-            raise Exception(e)
-        finally:
-            cv.destroyAllWindows()
 
     @staticmethod
-    def _draw_box(image, box, color):
+    def draw_box(image: numpy.ndarray, box: tuple, color: tuple):
         """
         Internal method: Draw single bounding box with label.
 
@@ -93,15 +42,9 @@ class Visualize:
         if len(box) == 6:
             confidence = str(box[5])
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
-
-
-    def _get_groundtruth_bboxes(self, frame_idx):
-        """
-        Internal method: Filter groundtruth boxes for current frame.
-        
-        :param frame_idx: Current frame index
-        :return:list: Groundtruth boxes for specified frame in format [label, x1, y1, x2, y2]
-        """
-        return [item[1:] for item in self.gt_layout if item[0] == frame_idx]
+        cv.putText(image, label, (x1 + 10, y1 + 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv.putText(image, confidence, (x1 - 10, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
+    
+    @staticmethod
+    def show_frame(frame: numpy.ndarray):
+        cv.imshow("Detection Output", frame)

@@ -72,7 +72,7 @@ class VehicleDetector(Detector):
         pass
 
     def detect(self, image):
-        pass
+        return []
 
 
 class FakeDetector(Detector):
