@@ -15,7 +15,7 @@ Dependencies:
 
 import cv2 as cv
 import numpy
-class Visualize:
+class Visualizer:
     """
     Visualization controller for detection/groundtruth comparison.
 
@@ -47,5 +47,14 @@ class Visualize:
 
     @staticmethod
     def show_frame(frame: numpy.ndarray):
-        """Some"""
+        """
+        Show image in CV window
+        
+        :param frame: frame, that need to show.
+        """
         cv.imshow("Detection Output", frame)
+
+    @staticmethod
+    def cleanup():
+        """Release resourses"""
+        cv.destroyAllWindows()

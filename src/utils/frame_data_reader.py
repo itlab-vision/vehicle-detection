@@ -103,6 +103,7 @@ class VideoDataReader(FrameDataReader):
         :return int: number of images
         """
         return int(self._cap.get(cv.CAP_PROP_FRAME_COUNT))
+
     def __enter__(self):
         """Initialize video capture and return iterator."""
         self._cap = cv.VideoCapture(self.video_path)

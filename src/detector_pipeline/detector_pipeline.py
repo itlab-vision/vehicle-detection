@@ -4,21 +4,23 @@ Some
 from dataclasses import dataclass
 import numpy
 import cv2 as cv
-from tqdm import tqdm
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
 import src.utils.data_reader as dr
-from src.gui_application.visualizer import Visualize
+from src.gui_application.visualizer import Visualizer
+from src.gui_application.cli_visualizer import CLIVisualize
 
 @dataclass
 class PipelineComponents:
     """Container for all pipeline components"""
     reader: FrameDataReader
     detector: Detector
-    visualizer: Visualize
+    visualizer: Visualizer
+    cli_visual: CLIVisualize
     writer: Writer = None
     gt_reader: dr.DataReader = None
+
 
 class DetectionPipeline:
     """Some"""
@@ -31,10 +33,8 @@ class DetectionPipeline:
         """Some"""
         try:
             with self.components.reader as reader:
-                self._create_progress_bar()
                 for frame_idx, frame in enumerate(reader):
                     self._process_frame(frame_idx, frame)
-                    self._update_progress_bar()
                     if self._should_exit():
                         break
 
@@ -52,6 +52,10 @@ class DetectionPipeline:
 
         if self.components.visualizer:
             self._visualize(frame_idx, frame, detections)
+
+        if self.components.cli_visual:
+            self.components.cli_visual.update_status(frame_idx)
+            self.components.cli_visual.print_detections(detections)
 
     def _write_results(self, frame_idx: int, detections: list[tuple]):
         """Some"""
@@ -72,30 +76,11 @@ class DetectionPipeline:
     def _parse_gtbbox(self, frame_idx: int):
         return [item[1:] for item in self.components.gt_reader.read() if item[0] == frame_idx]
 
-    def _create_progress_bar(self):
-        """Initialize progress bar with total frame count"""
-        total_frames = self.components.reader.get_total_images()
-        self.progress_bar = tqdm(
-            total=total_frames,
-            desc="Processing frames",
-            unit="frame",
-            dynamic_ncols=True
-        )
-
-    def _update_progress_bar(self):
-        """Update progress bar state"""
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def _close_progress_bar(self):
-        """Properly close progress bar"""
-        if self.progress_bar:
-            self.progress_bar.close()
-            self.progress_bar = None
-
     def _should_exit(self):
         """Some"""
-        return cv.waitKey(5) & 0xFF == ord('q')
+        if self.components.visualizer:
+            return cv.waitKey(5) & 0xFF == ord('q')
+        return 0xFF == ord('q')
 
     def _handle_error(self, error: Exception):
         """Some"""
@@ -105,5 +90,5 @@ class DetectionPipeline:
 
     def _cleanup(self):
         """Some"""
-        self._close_progress_bar()
-        cv.destroyAllWindows()
+        if self.components.visualizer:
+            self.components.visualizer.cleanup()

@@ -7,7 +7,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application.visualizer import Visualize
+from src.gui_application.visualizer import Visualizer
+from src.gui_application.cli_visualizer import CLIVisualize
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
@@ -76,17 +77,19 @@ def config_visual_main(args: argparse.Namespace):
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "vehicle" ),
             writer = Writer.create(args.write_path),
-            visualizer = Visualize(),
+            visualizer = Visualizer(),
+            cli_visual = None,
             gt_reader = dr.CsvGTReader(args.groundtruth_path))
 
-def config_silent_main(args: argparse.Namespace):
+def config_cli_main(args: argparse.Namespace):
     """some"""
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
-            detector = Detector.create( "vehicle" ),
+            detector = Detector.create( "fake" ),
             writer = Writer.create(args.write_path),
             visualizer = None,
-            gt_reader = None)
+            cli_visual = CLIVisualize(),
+            gt_reader = dr.CsvGTReader(args.groundtruth_path))
 
 def config_fake_main(args: argparse.Namespace):
     """some"""
@@ -94,7 +97,8 @@ def config_fake_main(args: argparse.Namespace):
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "fake" ),
             writer = Writer.create(args.write_path),
-            visualizer = Visualize(),
+            visualizer = Visualizer(),
+            cli_visual = CLIVisualize(),
             gt_reader = dr.FakeGTReader(args.groundtruth_path))
 
 def main():
@@ -111,7 +115,7 @@ def main():
     try:
         args = cli_argument_parser()
 
-        components = config_visual_main(args)
+        components = config_cli_main(args)
 
         pipeline = DetectionPipeline(components)
         pipeline.run()
