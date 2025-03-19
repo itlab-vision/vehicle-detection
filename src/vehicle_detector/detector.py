@@ -42,7 +42,7 @@ class Detector(ABC):
         Process image and return detected objects.
 
         :param image: Input image array (OpenCV format)
-        :return: list: Detection tuples (label, x1, y1, x2, y2)
+        :return list: Detection tuples (label, x1, y1, x2, y2)
         """
 
     @staticmethod
@@ -51,8 +51,8 @@ class Detector(ABC):
         Factory method for creating detector instances.
         
         :param mode: Detector variant selector
-        :return: Detector: Concrete subclass instance
-        :raise: ValueError: For unsupported mode specifications
+        :return Detector: Concrete subclass instance
+        :raise ValueError: For unsupported mode specifications
         """
         if mode == "vehicle":
             return VehicleDetector()
@@ -97,7 +97,7 @@ class FakeDetector(Detector):
         Generate synthetic detections for testing.
         
         :param image: Input image array (checks size validity)
-        :return: list: Detection tuples (class, x1, y1, x2, y2, confidence)
+        :return list: Detection tuples (class, x1, y1, x2, y2, confidence)
         """
         if image is None or image.size == 0:
             return []

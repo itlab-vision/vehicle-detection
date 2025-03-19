@@ -95,7 +95,7 @@ def main():
         detector = Detector.create( "fake" )
         gtreader = dr.FakeGTReader(args.groundtruth_path)
         visualizer = Visualize(reader, writer, detector, gtreader.read())
-        visualizer.show()
+        #visualizer.show()
     except Exception as e:
         print(e)
 

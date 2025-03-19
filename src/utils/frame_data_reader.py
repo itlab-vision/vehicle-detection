@@ -53,10 +53,16 @@ class FrameDataReader(ABC):
         """
         Get next frame in sequence.
         
-        :return: ndarray: Next frame as numpy array
-        :raise: StopIteration: When no more frames available
+        :return ndarray: Next frame as numpy array
+        :raise StopIteration: When no more frames available
         """
+    @abstractmethod
+    def get_total_images(self):
+        """
+        Get number of images
 
+        :return int: total images
+        """
     @staticmethod
     def create(mode: str, dir_path: str):
         """
@@ -64,8 +70,8 @@ class FrameDataReader(ABC):
         
         :param mode: Source type - 'video' or 'image'
         :param dir_path: Path to video file or image directory
-        :return: FrameDataReader: Concrete reader instance
-        :raises: ValueError: For unsupported modes or invalid paths
+        :return FrameDataReader: Concrete reader instance
+        :raise ValueError: For unsupported modes or invalid paths
         """
         if mode == "video":
             return VideoDataReader(dir_path)
@@ -87,11 +93,16 @@ class VideoDataReader(FrameDataReader):
         Initialize video capture and validate path.
 
         :param video_path: Path to video file
-        :raise: ValueError: If video file cannot be opened
+        :raise ValueError: If video file cannot be opened
         """
         self.video_path = video_path
         self._cap = None
 
+    def get_total_images(self):
+        """
+        :return int: number of images
+        """
+        return int(self._cap.get(cv.CAP_PROP_FRAME_COUNT))
     def __enter__(self):
         """Initialize video capture and return iterator."""
         self._cap = cv.VideoCapture(self.video_path)
@@ -106,7 +117,7 @@ class VideoDataReader(FrameDataReader):
 
     def __iter__(self):
         """
-        :return: self: Iterator instance
+        :return self: Iterator instance
         """
         return self
 
@@ -114,8 +125,8 @@ class VideoDataReader(FrameDataReader):
         """
         Get next video frame.
 
-        :return: ndarray: Next video frame as numpy array
-        :raise: StopIteration: When video ends or is closed
+        :return ndarray: Next video frame as numpy array
+        :raise StopIteration: When video ends or is closed
         """
         if self._cap.isOpened():
             ret, frame = self._cap.read()
@@ -138,7 +149,7 @@ class ImgDataReader(FrameDataReader):
         Validate directory and prepare image file list.
 
         :param dir_path: Path to image directory
-        :raise: ValueError: For invalid directory path
+        :raise ValueError: For invalid directory path
         """
         self.index = 0
         self.dir_path = Path(dir_path)
@@ -163,6 +174,12 @@ class ImgDataReader(FrameDataReader):
         if not self.image_files:
             raise ValueError(f"No valid images found in: {self.dir_path}")
 
+    def get_total_images(self):
+        """
+        :return int: number of images
+        """
+        return len(self.image_files)
+
     def __enter__(self):
         """
         Context manager entry point.
@@ -176,7 +193,7 @@ class ImgDataReader(FrameDataReader):
 
     def __iter__(self):
         """
-        :return: self: Iterator instance
+        :return self: Iterator instance
         """
         return self
 
@@ -186,8 +203,8 @@ class ImgDataReader(FrameDataReader):
 
         :return: ndarray: Image data as numpy array
 
-        :raise: StopIteration: When all images processed
-        :raise: ValueError: If image file cannot be read
+        :raise StopIteration: When all images processed
+        :raise ValueError: If image file cannot be read
         """
         if self.index < len(self.image_files):
             img_path = self.image_files[self.index]

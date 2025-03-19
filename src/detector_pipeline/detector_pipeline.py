@@ -4,6 +4,7 @@ Some
 from dataclasses import dataclass
 import numpy
 import cv2 as cv
+from tqdm import tqdm
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
@@ -24,13 +25,16 @@ class DetectionPipeline:
     def __init__(self, components:PipelineComponents):
         """Some"""
         self.components = components
+        self.progress_bar = None
 
     def run(self):
         """Some"""
         try:
             with self.components.reader as reader:
+                self._create_progress_bar()
                 for frame_idx, frame in enumerate(reader):
                     self._process_frame(frame_idx, frame)
+                    self._update_progress_bar()
                     if self._should_exit():
                         break
 
@@ -68,10 +72,27 @@ class DetectionPipeline:
     def _parse_gtbbox(self, frame_idx: int):
         return [item[1:] for item in self.components.gt_reader.read() if item[0] == frame_idx]
 
-    # def _show_frame(self, frame: numpy.ndarray):
-    #     """Some"""
-    #     cv.imshow("Detection Output", frame)
+    def _create_progress_bar(self):
+        """Initialize progress bar with total frame count"""
+        total_frames = self.components.reader.get_total_images()
+        self.progress_bar = tqdm(
+            total=total_frames,
+            desc="Processing frames",
+            unit="frame",
+            dynamic_ncols=True
+        )
 
+    def _update_progress_bar(self):
+        """Update progress bar state"""
+        if self.progress_bar:
+            self.progress_bar.update(1)
+
+    def _close_progress_bar(self):
+        """Properly close progress bar"""
+        if self.progress_bar:
+            self.progress_bar.close()
+            self.progress_bar = None
+    
     def _should_exit(self):
         """Some"""
         return cv.waitKey(5) & 0xFF == ord('q')
@@ -84,4 +105,5 @@ class DetectionPipeline:
 
     def _cleanup(self):
         """Some"""
+        self._close_progress_bar()
         cv.destroyAllWindows()

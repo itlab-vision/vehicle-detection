@@ -70,6 +70,33 @@ def cli_argument_parser():
     args = parser.parse_args()
     return args
 
+def config_visual_main(args: argparse.Namespace):
+    """some"""
+    return PipelineComponents(
+            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
+            detector = Detector.create( "vehicle" ),
+            writer = Writer.create(args.write_path),
+            visualizer = Visualize(),
+            gt_reader = dr.CsvGTReader(args.groundtruth_path))
+
+def config_silent_main(args: argparse.Namespace):
+    """some"""
+    return PipelineComponents(
+            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
+            detector = Detector.create( "vehicle" ),
+            writer = Writer.create(args.write_path),
+            visualizer = None,
+            gt_reader = None)
+
+def config_fake_main(args: argparse.Namespace):
+    """some"""
+    return PipelineComponents(
+            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
+            detector = Detector.create( "fake" ),
+            writer = Writer.create(args.write_path),
+            visualizer = Visualize(),
+            gt_reader = dr.FakeGTReader(args.groundtruth_path))
+
 def main():
     """
     Main execution function for the visualizer application.
@@ -84,13 +111,7 @@ def main():
     try:
         args = cli_argument_parser()
 
-        components = PipelineComponents(
-            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
-            detector = Detector.create( "vehicle" ),
-            visualizer = Visualize(),
-            writer = Writer.create(args.write_path),
-            gt_reader = dr.CsvGTReader(args.groundtruth_path) 
-        )
+        components = config_visual_main(args)
 
         pipeline = DetectionPipeline(components)
         pipeline.run()

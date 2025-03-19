@@ -47,4 +47,5 @@ class Visualize:
     
     @staticmethod
     def show_frame(frame: numpy.ndarray):
+        """"""
         cv.imshow("Detection Output", frame)
