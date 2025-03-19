@@ -92,7 +92,7 @@ class DetectionPipeline:
         if self.progress_bar:
             self.progress_bar.close()
             self.progress_bar = None
-    
+
     def _should_exit(self):
         """Some"""
         return cv.waitKey(5) & 0xFF == ord('q')

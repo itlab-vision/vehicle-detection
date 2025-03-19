@@ -44,8 +44,8 @@ class Visualize:
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1 + 10, y1 + 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.putText(image, confidence, (x1 - 10, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
-    
+
     @staticmethod
     def show_frame(frame: numpy.ndarray):
-        """"""
+        """Some"""
         cv.imshow("Detection Output", frame)
