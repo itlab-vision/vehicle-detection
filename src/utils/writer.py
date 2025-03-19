@@ -67,7 +67,7 @@ class CsvWriter(Writer):
         self.output_path = output_path
 
 
-    def write(self, data: tuple):
+    def write(self, data: list[tuple]):
         """
         Write tuple as CSV row. Automatically handles:
         - File opening on first write
@@ -77,7 +77,7 @@ class CsvWriter(Writer):
         try:
             with open(self.output_path, "a", newline="", encoding="utf-8") as file:
                 writer = csv.writer(file)
-                writer.writerow(data)
+                writer.writerows(data)
         except OSError as e:
             raise OSError(f"File system error accessing {self.output_path}: {e}") from e
 

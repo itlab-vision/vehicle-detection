@@ -7,7 +7,7 @@ Provides abstract and concrete implementations for reading annotation data from:
 - Synthetic data generation for testing
 
 Classes:
-    :GroundtruthReader: Abstract base class for data readers
+    :DataReader: Abstract base class for data readers
     :CsvGTReader: CSV parser for ground truth annotations
     :FakeGTReader: Synthetic data generator for testing
     :DetectionReader: CSV parser for detection results with confidence scores

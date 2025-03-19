@@ -62,13 +62,14 @@ class Visualize:
                 if image is None:
                     break
                 for box in self.detector.detect(image):
-                    self.__draw_box(image, box, (255, 112, 166))
+                    self._draw_box(image, box, (255, 112, 166))
                     if self.writer:
                         self.writer.write((frame_idx, *box))
                 if self.gt_layout:
-                    for box in self.__get_groundtruth_bboxes(frame_idx):
-                        self.__draw_box(image, box, (0, 255, 0))
+                    for box in self._get_groundtruth_bboxes(frame_idx):
+                        self._draw_box(image, box, (0, 255, 0))
                 frame_idx+=1
+                cv.imshow("Detection", image)
                 if cv.waitKey(25) & 0xFF == ord('q'):
                     break
         except Exception as e:
@@ -79,7 +80,7 @@ class Visualize:
             cv.destroyAllWindows()
 
     @staticmethod
-    def __draw_box(image, box, color):
+    def _draw_box(image, box, color):
         """
         Internal method: Draw single bounding box with label.
 
@@ -94,9 +95,9 @@ class Visualize:
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
-        cv.imshow("Detection", image)
 
-    def __get_groundtruth_bboxes(self, frame_idx):
+
+    def _get_groundtruth_bboxes(self, frame_idx):
         """
         Internal method: Filter groundtruth boxes for current frame.
         
