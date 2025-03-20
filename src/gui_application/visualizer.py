@@ -108,7 +108,7 @@ class GUIVisualizer(BaseVisualizer):
 
     def check_exit(self):
         """Some"""
-        return cv.waitKey(5) & 0xFF == ord('q')
+        return cv.waitKey(25) & 0xFF == ord('q')
 
     def finalize(self):
         """Release resourses"""

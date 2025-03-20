@@ -35,7 +35,7 @@ class DetectionPipeline:
             with self.components.reader as reader:
                 self.components.visualizer.initialize(reader.get_total_images())
                 if self.components.gt_reader:
-                    self.gtboxes = self.components.gt_reader.read()
+                    self.gtboxes = self._get_gtbboxes(self.components.gt_reader.read())
 
                 for frame_idx, frame in enumerate(reader):
                     self._process_frame(frame_idx, frame)
@@ -57,18 +57,12 @@ class DetectionPipeline:
 
         self.components.visualizer.visualize_frame(
             frame, detections,
-            self._get_gtbbox(frame_idx)
+            self.gtboxes[frame_idx]
         )
 
     def _write_results(self, frame_idx: int, detections: list[tuple]):
         """Some"""
         self.components.writer.write((frame_idx,) + det for det in detections)
-
-    def _get_gtbbox(self, frame_idx: int):
-        """Some"""
-        if not self.components.gt_reader:
-            return []
-        return [item[1:] for item in self.gtboxes if item[0] == frame_idx]
 
     def _should_exit(self):
         """Some"""
@@ -83,3 +77,21 @@ class DetectionPipeline:
     def _finalize(self):
         """Some"""
         self.components.visualizer.finalize()
+    
+    @staticmethod
+    def _get_gtbboxes(gt_data: list):
+        """
+        Internal method: Transform groundtruth data into frame-indexed dictionary.
+        :param gt_data: List of groundtruth entries in format 
+                    [[frame_index, label, x1, y1, x2, y2], ...]
+
+        :return dict: Dictionary mapping frame indices to their groundtruth boxes
+        """
+        frame_dict = {}
+        for entry in gt_data:
+            frame_idx = entry[0]
+            bbox_data = entry[1:]
+            if frame_idx not in frame_dict:
+                frame_dict[frame_idx] = []
+            frame_dict[frame_idx].append(bbox_data)
+        return frame_dict
