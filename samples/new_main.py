@@ -117,7 +117,7 @@ def main():
         pipeline = DetectionPipeline(components)
         pipeline.run()
 
-        if args.groundtruth_path and args.write_path is not None:
+        if all([args.groundtruth_path, args.write_path]):
             accur_calc = AccuracyCalculator()
             accur_calc.load_detections(args.write_path)
             accur_calc.load_groundtruths(args.groundtruth_path)
