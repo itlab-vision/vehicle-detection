@@ -52,7 +52,7 @@ class CLIVisualize:
         try:
             self.start_time = time.time()
             frame_idx = 0
-            
+
             for frame in self.datareader:
                 current_time = time.time()
                 if frame is None:
@@ -68,9 +68,9 @@ class CLIVisualize:
                 for box in detections:
                     if self.writer:
                         self.writer.write((frame_idx, *box))
-            
+
                 frame_idx += 1
-                
+
                 if 0xFF == ord('q'):
                     break
         except Exception as e:
