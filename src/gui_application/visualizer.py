@@ -41,7 +41,7 @@ class Visualize:
         self.datareader = datareader
         self.writer = writer
         self.detector = detector
-        self.gt_layout = gt_data
+        self.gt_layout = self.__get_groundtruth_bboxes(gt_data)
         self.progress_bar = None
 
     def show(self):
@@ -71,7 +71,8 @@ class Visualize:
                     if self.writer:
                         self.writer.write((frame_idx, *box))
                 if self.gt_layout:
-                    for box in self.__get_groundtruth_bboxes(frame_idx):
+                    gt_bboxes = self.gt_layout.get(frame_idx)
+                    for box in gt_bboxes:
                         self.__draw_box(image, box, (0, 255, 0))
                 cv.imshow("Detection", image)
                 self.__update_progress_bar()
@@ -153,11 +154,21 @@ class Visualize:
         cv.putText(image, label, (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.putText(image, confidence, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
 
-    def __get_groundtruth_bboxes(self, frame_idx):
+    @staticmethod
+    def __get_groundtruth_bboxes(gt_data: list):
         """
-        Internal method: Filter groundtruth boxes for current frame.
+        nternal method: Transform groundtruth data into frame-indexed dictionary.
         
-        :param frame_idx: Current frame index
-        :return:list: Groundtruth boxes for specified frame in format [label, x1, y1, x2, y2]
+        :param gt_data: List of groundtruth entries in format 
+                    [frame_index, label, x1, y1, x2, y2, ...]
+
+        :return dict: Dictionary mapping frame indices to their groundtruth boxes
         """
-        return [item[1:] for item in self.gt_layout if item[0] == frame_idx]
+        frame_dict = {}
+        for entry in gt_data:
+            frame_idx = entry[0]
+            bbox_data = entry[1:]
+            if frame_idx not in frame_dict:
+                frame_dict[frame_idx] = []
+            frame_dict[frame_idx].append(bbox_data)
+        return frame_dict
