@@ -35,7 +35,7 @@ class DetectionPipeline:
         try:
             with self.components.reader as reader:
                 self.components.visualizer.initialize(reader.get_total_images())
-                if (self.components.gt_reader):
+                if self.components.gt_reader:
                     self.gtboxes = self.components.gt_reader.read()
 
                 for frame_idx, frame in enumerate(reader):
