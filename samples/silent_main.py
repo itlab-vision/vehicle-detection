@@ -8,7 +8,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.gui_application import cli_visualizer as vis
-from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
@@ -96,11 +95,13 @@ def main():
         accurcheck = AccuracyCalculator()
         visualizer = vis.CLIVisualize(reader, writer, detector)
         visualizer.show()
-        accurcheck.load_detections(args.write_path)
-        accurcheck.load_groundtruths(args.groundtruth_path)
-        print(f"TPR: {accurcheck.calc_tpr()}")
-        print(f"FDR: {accurcheck.calc_fdr()}")
-        print(f"MAP: {accurcheck.calc_map()}")
+
+        if args.write_path and args.groundtruth_path:
+            accurcheck.load_detections(args.write_path)
+            accurcheck.load_groundtruths(args.groundtruth_path)
+            print(f"TPR: {accurcheck.calc_tpr()}")
+            print(f"FDR: {accurcheck.calc_fdr()}")
+            print(f"MAP: {accurcheck.calc_map()}")
 
     except Exception as e:
         print(e)
