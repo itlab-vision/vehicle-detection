@@ -101,7 +101,7 @@ class CLIVisualize:
         
         :param detections: list of tuples that got by detector
         """
-        for i, box in enumerate(detections):
+        for box in detections:
             label = box[0]
             coords = tuple(map(int, box[1:5]))
             detection_str = (

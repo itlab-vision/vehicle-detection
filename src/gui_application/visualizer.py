@@ -157,10 +157,9 @@ class Visualize:
     @staticmethod
     def __get_groundtruth_bboxes(gt_data: list):
         """
-        nternal method: Transform groundtruth data into frame-indexed dictionary.
-        
+        Internal method: Transform groundtruth data into frame-indexed dictionary.
         :param gt_data: List of groundtruth entries in format 
-                    [frame_index, label, x1, y1, x2, y2, ...]
+                    [[frame_index, label, x1, y1, x2, y2], ...]
 
         :return dict: Dictionary mapping frame indices to their groundtruth boxes
         """
