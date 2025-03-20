@@ -75,7 +75,7 @@ class GUIVisualizer(BaseVisualizer):
         cv.namedWindow(self.window_name, cv.WINDOW_NORMAL)
 
     def update_progress(self):
-        """No needed for GUI"""
+        """Update progress bar"""
         self.progress_bar.update(1)
 
     def visualize_frame(self, frame: numpy.ndarray,

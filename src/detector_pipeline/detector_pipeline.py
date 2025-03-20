@@ -28,7 +28,6 @@ class DetectionPipeline:
 
         self.components = components
         self.gtboxes = None
-        self.progress_bar = None
 
     def run(self):
         """Some"""
