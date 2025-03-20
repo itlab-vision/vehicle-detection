@@ -13,6 +13,7 @@ from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
 from src.detector_pipeline.detector_pipeline import PipelineComponents, DetectionPipeline
+from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 
 def cli_argument_parser():
     """
@@ -115,6 +116,15 @@ def main():
 
         pipeline = DetectionPipeline(components)
         pipeline.run()
+
+        if args.groundtruth_path and args.write_path is not None:
+            accur_calc = AccuracyCalculator()
+            accur_calc.load_detections(args.write_path)
+            accur_calc.load_groundtruths(args.groundtruth_path)
+            print (f"TPR: {accur_calc.calc_tpr()}\n"
+                f"FDR: {accur_calc.calc_fdr()}\n"
+                f"MAP: {accur_calc.calc_map()}")
+
     except Exception as e:
         print(e)
 
