@@ -1,17 +1,20 @@
 """
-Object Detection Module
+Detection Output Adapters
 
-Provides abstract detection interface and concrete implementations for:
-- Faster R-CNN based vehicle detection using COCO-pretrained model
-- Post-processing of detection results (including NMS and filtering by class)
+Provides a standardized interface for processing raw outputs from different object detection models.
+
+Functionality:
+- Converts model-specific output formats into a unified list of detections.
+- Filters detections by confidence threshold.
+- Supports Non-Maximum Suppression (NMS) for reducing redundant detections.
+- Maps numerical class labels to human-readable class names.
 
 Classes:
-    :Adapter: Abstract base class defining the interface for post-processing detection results
-    :AdapterFasterRCNN: Concrete implementation for Faster R-CNN model output processing
+    :Adapter: Abstract base class defining the interface for detection output processing.
+    :AdapterFasterRCNN: Concrete implementation for processing Faster R-CNN outputs.
 
 Dependencies:
-    :torchvision: for Faster R-CNN model and pretrained weights
-    :cv2: for image handling and NMS (Non-Maximum Suppression)
+    :cv2: for image handling and Non-Maximum Suppression (NMS)
     :numpy: for numerical operations
     :abc: for abstract base class support
 """
@@ -99,17 +102,13 @@ class AdapterFasterRCNN(Adapter):
             if confidence > self.conf_threshold:
                 # Get class name based on label index
                 class_name = self.coco_classes[label.item()]
-
-                # Check if the detected class is in the desired class names
                 if class_name in self.class_names:
                     results.append([class_name, *[int(val) for val in box], confidence])
 
-        # Apply Non-Maximum Suppression (NMS)
-        results = self.apply_nms(results)
-
+        results = self.__apply_nms(results)
         return results
 
-    def apply_nms(self, detections: list):
+    def __apply_nms(self, detections: list):
         """
         Apply Non-Maximum Suppression (NMS) to remove redundant detections.
 
