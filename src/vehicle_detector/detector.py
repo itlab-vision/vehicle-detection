@@ -2,23 +2,32 @@
 Object Detection Module
 
 Provides abstract detection interface and concrete implementations for:
-- Production-ready vehicle detection (placeholder)
-- Randomized fake detection for testing/development
+- Real vehicle detection using Faster R-CNN (PyTorch-based)
+- Fake detection with randomized bounding boxes for testing and development
 
 Classes:
-    :Detector: Abstract base class defining detection interface
-    :VehicleDetector: (To be implemented) For real vehicle detection
-    :FakeDetector: Test implementation with random bounding box generation
+    :Detector: Abstract base class defining the detection interface
+    :VehicleDetector: Placeholder for real vehicle detection system (currently not implemented)
+    :FakeDetector: Generates random bounding boxes for testing purposes
+    :VehicleDetectorFasterRCNN: Concrete implementation of vehicle detection
+                                using Faster R-CNN (PyTorch)
 
 Dependencies:
-    :OpenCV (cv2): for image handling
-    :random: for synthetic detection generation
+    :torch: for Faster R-CNN model and deep learning functionalities
+    :torchvision: for pre-trained Faster R-CNN model and image transformations
+    :cv2: for image handling and transformations (OpenCV)
+    :random: for synthetic detection generation (FakeDetector)
+    :numpy: for numerical operations
     :abc: for abstract base class support
 """
 
 import random
 from abc import ABC, abstractmethod
-import numpy
+import numpy as np
+import cv2 as cv
+import torch
+import torchvision
+from src.vehicle_detector.adapter import AdapterFasterRCNN
 
 
 class Detector(ABC):
@@ -37,7 +46,7 @@ class Detector(ABC):
     """
 
     @abstractmethod
-    def detect(self, image: numpy.ndarray):
+    def detect(self, image: np.ndarray):
         """
         Process image and return detected objects.
 
@@ -58,6 +67,8 @@ class Detector(ABC):
             return VehicleDetector()
         if mode == "fake":
             return FakeDetector()
+        if mode == "FasterRCNN":
+            return VehicleDetectorFasterRCNN()
         raise ValueError(f"Unsupported mode: {mode}")
 
 
@@ -92,7 +103,7 @@ class FakeDetector(Detector):
         if seed is not None:
             random.seed(seed)
 
-    def detect(self, image: numpy.ndarray):
+    def detect(self, image: np.ndarray):
         """
         Generate synthetic detections for testing.
         
@@ -118,3 +129,41 @@ class FakeDetector(Detector):
             confidence = random.random()
             bboxes.append((cl, x1, y1, x2, y2, confidence))
         return bboxes
+
+
+class VehicleDetectorFasterRCNN(Detector):
+    """
+    Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
+    """
+
+    def __init__(self, class_names: list = ('car', 'bus', 'truck'), conf_threshold: float = 0.5,
+                 nms_threshold: float = 0.4):
+        """
+        Initializes the Faster R-CNN vehicle detector.
+
+        :param class_names: List of class names to be detected (e.g., ['car', 'bus']).
+        :param conf_threshold: Confidence threshold for detections.
+        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
+        """
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+        self.model.eval()  # Set the model to evaluation mode
+        self.adapter = AdapterFasterRCNN(conf_threshold, nms_threshold, class_names)
+
+    def detect(self, image: np.ndarray):
+        """
+        Performs object detection on the input image.
+
+        :param image: Input image as a NumPy array.
+        :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
+        """
+        # Convert the image to RGB and preprocess it
+        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
+
+        # Perform inference
+        with torch.no_grad():
+            outputs = self.model(image_tensor)
+
+        # Post-process the detections using the adapter
+        image_height, image_width, _ = image.shape
+        return self.adapter.post_processing(outputs, image_width, image_height)
