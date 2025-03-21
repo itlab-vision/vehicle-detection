@@ -77,7 +77,7 @@ class DetectionPipeline:
     def _finalize(self):
         """Some"""
         self.components.visualizer.finalize()
-    
+
     @staticmethod
     def _get_gtbboxes(gt_data: list):
         """
