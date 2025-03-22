@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application import visualizer as vis
+from src.gui_application.visualizer import BaseVisualizer
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
@@ -87,39 +87,27 @@ def cli_argument_parser():
                         dest='write_path',
                         required=False,
                         default=None)
+    parser.add_argument('-s', '--silent',
+                        help='Set silent mode of program',
+                        action='store_true',
+                        dest='silent_mode')
+
     args = parser.parse_args()
     return args
 
 
-def config_visual_main(args: argparse.Namespace):
+def config_main(args: argparse.Namespace):
     """
-    Configure pipeline components for GUI visualization.
+    Configure pipeline components.
 
-    Args:
-        args: Parsed command-line arguments
+    :param argparse.Namespace: Parsed command-line arguments
 
-    Returns:
-        PipelineComponents: Configured pipeline objects with GUI visualizer
+    :return PipelineComponents: Configured pipeline objects with GUI visualizer
     """
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "fake" ),
-            visualizer = vis.GUIVisualizer(),
-            writer = Writer.create(args.write_path) if args.write_path else None,
-            gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
-
-def config_cli_main(args: argparse.Namespace):
-    """
-    Configure pipeline components for command-line visualization.
-
-    :param: Parsed command-line arguments
-
-    :return PipelineComponents: Configured pipeline objects with CLI visualizer
-    """
-    return PipelineComponents(
-            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
-            detector = Detector.create( "fake" ),
-            visualizer = vis.CLIVisualizer(),
+            visualizer = BaseVisualizer.create(args.silent_mode),
             writer = Writer.create(args.write_path) if args.write_path else None,
             gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
@@ -127,7 +115,7 @@ def config_fake_main(args: argparse.Namespace):
     """
     Configure pipeline with test/stub components for debugging.
 
-    :param: Parsed command-line arguments
+    :param argparse.Namespace: Parsed command-line arguments
 
     :return PipelineComponents: Pipeline with fake groundtruth reader
         for development/testing purposes
@@ -135,7 +123,7 @@ def config_fake_main(args: argparse.Namespace):
     return PipelineComponents(
             reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
             detector = Detector.create( "fake" ),
-            visualizer = vis.GUIVisualizer(),
+            visualizer = BaseVisualizer.create(args.silent_mode),
             writer = Writer.create(args.write_path) if args.write_path else None,
             gt_reader = dr.FakeGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
@@ -159,7 +147,7 @@ def main():
     try:
         args = cli_argument_parser()
 
-        components = config_cli_main(args)
+        components = config_main(args)
 
         pipeline = DetectionPipeline(components)
         pipeline.run()

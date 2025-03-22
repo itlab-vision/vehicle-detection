@@ -1,16 +1,8 @@
 """
 Computer Vision Visualization Module
 
-Provides functionality for visualizing object detection results alongside ground truth data.
-Handles both image sequences and video inputs with the following components:
-- Argument parsing for input configuration
-- Frame data reading (images/video)
-- Fake object detection implementation
-- Visualization of detection vs groundtruth comparisons
-
-Dependencies:
-- OpenCV (cv2) for image processing and display
-- argparse for command-line argument handling
+Provides abstract and concrete implementations for visualizing object detection results.
+Supports both GUI-based (OpenCV) and CLI-based visualization with progress tracking.
 """
 import time
 import sys
@@ -21,35 +13,66 @@ import numpy
 
 
 class BaseVisualizer(ABC):
-    """Some"""
+    """Abstract base class defining visualization interface."""
+
     @abstractmethod
     def initialize(self, total_frames: int):
-        """Some"""
+        """
+        Initialize visualization resources.
+
+        :param total_frames: Total number of frames to process
+        """
 
     @abstractmethod
     def update_progress(self):
-        """Some"""
+        """Update progress tracking display."""
 
     @abstractmethod
     def visualize_frame(self, frame: numpy.ndarray,
                      detections: list, ground_truth: list = None):
-        """Some"""
+        """
+        Render frame with detection annotations.
+
+        :param frame: Input image array in BGR format
+        :param detections: List of detected objects in format:
+                        (label, x1, y1, x2, y2[, confidence])
+        :param ground_truth: List of ground truth boxes in format:
+                         (label, x1, y1, x2, y2)
+        """
 
     @abstractmethod
     def check_exit(self):
-        """Some"""
+        """
+        Check for early termination request.
+
+        :return bool: True if termination requested, False otherwise
+        """
 
     @abstractmethod
     def finalize(self):
-        """Some"""
+        """Release visualization resources."""
+
+    @staticmethod
+    def create(silent: bool):
+        """
+        Factory method for visualizer instances.
+
+        :param silent: If True, creates CLI visualizer; otherwise GUI
+        """
+        if silent:
+            return CLIVisualizer()
+        return GUIVisualizer()
 
 
 class GUIVisualizer(BaseVisualizer):
     """
-    Visualization controller for detection/groundtruth comparison.
+    GUI visualization using OpenCV with real-time annotations and progress bar.
 
-    Handles frame iteration, bounding box drawing, and display management.
-    Uses different colors for detected boxes (blue) and groundtruth boxes (green).
+    Features:
+    - Bounding box rendering (blue for detections, green for ground truth)
+    - Confidence score display
+    - Interactive window with keyboard controls
+    - Frame rate statistics
     """
 
     def __init__(self):
@@ -61,7 +84,9 @@ class GUIVisualizer(BaseVisualizer):
         self.progress_bar = None
 
     def initialize(self, total_frames: int):
-        """Some"""
+        """
+        Initialize OpenCV window and progress bar.
+        """
         self.progress_bar = tqdm(
             total=total_frames,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
@@ -75,12 +100,12 @@ class GUIVisualizer(BaseVisualizer):
         cv.namedWindow(self.window_name, cv.WINDOW_NORMAL)
 
     def update_progress(self):
-        """Update progress bar"""
+        """Advance progress bar by one frame."""
         self.progress_bar.update(1)
 
     def visualize_frame(self, frame: numpy.ndarray,
                      detections: list, ground_truth: list = None):
-        """Some"""
+        """Render frame with bounding boxes and text annotations."""
         for box in detections:
             self._draw_box(frame, box, (255, 0, 0))
 
@@ -107,34 +132,38 @@ class GUIVisualizer(BaseVisualizer):
         cv.putText(image, confidence, (x1 - 10, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
 
     def check_exit(self):
-        """Some"""
+        """Check for Q key press to terminate visualization."""
         return cv.waitKey(25) & 0xFF == ord('q')
 
     def finalize(self):
-        """Release resourses"""
+        """Cleanup OpenCV resources and progress bar."""
         cv.destroyAllWindows()
         self.progress_bar.close()
         self.progress_bar = None
 
 
 class CLIVisualizer(BaseVisualizer):
+    """Command-line visualization with textual output and statistics.
+    
+    Features:
+    - Frame-by-frame detection reports
+    - Processing statistics (FPS, ETA)
+    - Minimal resource usage
     """
-    Visualization controller for detections.
-    Handles frame iteration and custom progress bar, print all detections.
-    """
+
     def __init__(self):
         self.start_time = 0
         self.frame_idx = 0
         self.total_frames = 0
 
     def initialize(self, total_frames: int):
-        """Some"""
+        """Initialize processing timer."""
         self.start_time = time.time()
         self.total_frames = total_frames
         print("Starting processing...")
 
     def update_progress(self):
-        """Some"""
+        """Update console progress display."""
 
         elapsed = time.time() - self.start_time
         fps = self.frame_idx / elapsed if elapsed > 0 else 0
@@ -146,9 +175,7 @@ class CLIVisualizer(BaseVisualizer):
 
     def visualize_frame(self, frame: numpy.ndarray,
                      detections: list, ground_truth: list = None):
-        """Some"""
-        if frame is None:
-            return
+        """Print frame detection details to console."""
 
         self._print_frame_header(self.frame_idx)
         self._print_bbox(detections, "Detections")
@@ -156,9 +183,11 @@ class CLIVisualizer(BaseVisualizer):
         self.frame_idx += 1
 
     def _print_frame_header(self, frame_idx: int):
+        """Internal: Print frame separator."""
         print(f"\n=== Frame {frame_idx} ===")
 
     def _print_bbox(self, boxes: list, title: str):
+        """Internal: Print detection details."""
         if not boxes:
             return
 
@@ -171,8 +200,10 @@ class CLIVisualizer(BaseVisualizer):
                  f" - ({coords[2]}, {coords[3]}){conf}")
 
     def check_exit(self):
-        return 0xFF == ord('q')
+        """CLI visualizer doesn't support interactive termination."""
+        return False
 
     def finalize(self):
+        """Print final statistics."""
         elapsed = time.time() - self.start_time
         print(f"\n\nProcessing completed in {elapsed:.2f} seconds")

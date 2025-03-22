@@ -35,6 +35,7 @@ class FrameDataReader(ABC):
     def __enter__(self):
         """
         Context manager entry point.
+
         :return self: Object instance
         """
 

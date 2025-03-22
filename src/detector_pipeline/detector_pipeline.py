@@ -1,5 +1,8 @@
 """
-Some
+Vehicle Detection Pipeline Implementation
+
+This module provides classes and methods for managing a vehicle detection pipeline, 
+including data processing, visualization, result recording, and error handling.
 """
 from dataclasses import dataclass
 import numpy
@@ -11,7 +14,15 @@ from src.gui_application.visualizer import BaseVisualizer
 
 @dataclass
 class PipelineComponents:
-    """Container for all pipeline components"""
+    """Container class for essential pipeline components.
+
+    Attributes:
+        reader: Input data handler for frames (images/video)
+        detector: Vehicle detection algorithm implementation
+        visualizer: Visualization interface controller
+        writer: Results output handler
+        gt_reader: Ground truth data loader
+    """
     reader: FrameDataReader
     detector: Detector
     visualizer: BaseVisualizer
@@ -20,9 +31,21 @@ class PipelineComponents:
 
 
 class DetectionPipeline:
-    """Some"""
+    """
+    Orchestrates the complete vehicle detection workflow.
+
+    Manages frame processing, visualization, result recording, and error handling.
+    Supports optional ground truth validation and early termination checks.
+    """
+
     def __init__(self, components: PipelineComponents):
-        """Some"""
+        """
+        Initialize the detection pipeline with required components.
+        
+        :param components: Configured pipeline components
+            
+        :raise ValueError: If any essential component (reader, detector, visualizer) is missing
+        """
         if (components.visualizer or components.reader or components.detector) is None:
             raise ValueError("Missing pipeline components")
 
@@ -30,7 +53,15 @@ class DetectionPipeline:
         self.gtboxes = None
 
     def run(self):
-        """Some"""
+        """
+        Execute the image processing loop.
+        
+        Workflow:
+        1. Initialize visualization and ground truth data (if available)
+        2. Process frames sequentially
+        3. Handle detection, visualization, and result recording
+        4. Manage cleanup and error handling
+        """
         try:
             with self.components.reader as reader:
                 self.components.visualizer.initialize(reader.get_total_images())
@@ -49,7 +80,12 @@ class DetectionPipeline:
             self._finalize()
 
     def _process_frame(self, frame_idx: int, frame: numpy.ndarray):
-        """Some"""
+        """
+        Process a single frame through the detection pipeline.
+
+        :param frame_idx: Index of the current frame
+        :param frame: Image frame data in numpy array format
+        """
         detections = self.components.detector.detect(frame)
 
         if self.components.writer:
@@ -61,27 +97,44 @@ class DetectionPipeline:
         )
 
     def _write_results(self, frame_idx: int, detections: list[tuple]):
-        """Some"""
+        """
+        Record detection results using the configured writer.
+
+        :param frame_idx: Index of the current frame
+        :param detections: List of detected objects in format 
+                                    (label, confidence, x1, y1, x2, y2)
+        """
         self.components.writer.write((frame_idx,) + det for det in detections)
 
     def _should_exit(self):
-        """Some"""
+        """
+        Check if processing should terminate early.
+
+        :return bool: True if exit signal received from visualizer, False otherwise
+        """
         return self.components.visualizer.check_exit()
 
     def _handle_error(self, error: Exception):
-        """Some"""
+        """
+        Handle pipeline errors and clean up resources.
+
+        :param error: Caught exception during processing
+        """
         if self.components.writer:
             self.components.writer.clear()
         raise RuntimeError(error)
 
     def _finalize(self):
-        """Some"""
+        """
+        Perform final cleanup operations after processing completes.
+        """
         self.components.visualizer.finalize()
 
     @staticmethod
     def _get_gtbboxes(gt_data: list):
         """
         Internal method: Transform groundtruth data into frame-indexed dictionary.
+
         :param gt_data: List of groundtruth entries in format 
                     [[frame_index, label, x1, y1, x2, y2], ...]
 
