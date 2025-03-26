@@ -111,22 +111,6 @@ def config_main(args: argparse.Namespace):
             writer = Writer.create(args.write_path) if args.write_path else None,
             gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
-def config_fake_main(args: argparse.Namespace):
-    """
-    Configure pipeline with test/stub components for debugging.
-
-    :param argparse.Namespace: Parsed command-line arguments
-
-    :return PipelineComponents: Pipeline with fake groundtruth reader
-        for development/testing purposes
-    """
-    return PipelineComponents(
-            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
-            detector = Detector.create( "fake" ),
-            visualizer = BaseVisualizer.create(args.silent_mode),
-            writer = Writer.create(args.write_path) if args.write_path else None,
-            gt_reader = dr.FakeGTReader(args.groundtruth_path) if args.groundtruth_path else None)
-
 
 def main():
     """"
