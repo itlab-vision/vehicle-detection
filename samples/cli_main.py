@@ -1,161 +1,154 @@
+"""
+CLI application "Vehicle detector"
+"""
+import argparse
+import yaml
 import sys
-import os
+from pathlib import Path
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(project_root)
+sys.path.append(str(Path(__file__).parent.parent))
 
 from src.gui_application.visualizer import Visualize
-from src.utils.data_reader import GroundtruthReader, FakeGroundtruthReader
+from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
+from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
-import datetime
-import argparse
-import os
-from PIL import Image
-
-import cv2 as cv
-import numpy as np
-import yaml
 
 def cli_argument_parser():
-    """
-    Parse command-line arguments for the visualizer application.
-
-    Defines and parses arguments for specifying input mode (image/video), file paths,
-    groundtruth data, and model path. Ensures mutual exclusivity between video and image paths
-    based on the selected mode.
-
-    Returns:
-        argparse.Namespace: Parsed arguments with the following attributes:
-            - mode (str): Input mode ('image' or 'video'), required
-            - video_path (str): Path to video file (required if mode is 'video')
-            - images_path (str): Path to image directory (required if mode is 'image')
-            - groundtruth_path (str): Path to groundtruth data file, optional
-            - model_path (str): Path to model file, required
-
-    Raises:
-        argparse.ArgumentError:
-            If required arguments are missing or invalid combinations are provided
-    """
-    
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-y', '--yaml',
                         type=str,
                         help = 'Path to a yaml file',
                         dest='yaml_file',
-                        required=False)
-    parser.add_argument('-t', '--mode',
-                        help='Mode (\'image\', \'video\')',
-                        type=str,
-                        dest='mode',
-                        choices=['image', 'video'],
-                        required=False)
-    parser.add_argument('-v', '--video',
-                        help='Path to a video file',
-                        type=str,
-                        dest='video_path')
-    parser.add_argument('-i', '--image',
-                        help='Path to images',
-                        type=str,
-                        dest='images_path',
-                        required=False)
-    parser.add_argument('-g', '--groundtruth',
-                        help='Path to a file of groundtruth',
-                        type=str,
-                        dest='groundtruth_path',
-                        required=False)
-    parser.add_argument('-m', '--model_name',
-                        help='Model name (\'MobileNet\', \'YOLOv4\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'YOLOv3_tiny\')',
-                        type=str,
-                        dest='model_name',
-                        choices=['MobileNet', 'YOLOv4', 'rcnn_resnet50', 'rcnn_resnet_v2', 'YOLOv3_tiny'],
-                        required=False,
-                        default='MobileNet')
-    parser.add_argument('-cl', '--path_classes',
-                        help='Path to a file of classes',
-                        type=str,
-                        dest='path_classes',
-                        required=False)
-    parser.add_argument('-wp', '--path_weights',
-                        help='Path to a file of weights',
-                        type=str,
-                        dest='path_weights',
-                        required=False)
-    parser.add_argument('-cp', '--path_config',
-                        help='Path to a file of config',
-                        type=str,
-                        dest='path_config',
-                        required=False)
-    parser.add_argument('-c', '--confidence', 
-                        help='Confidence threshold',
-                        type=float, 
-                        dest='conf',
-                        required=False)
-    parser.add_argument('-n', '--nms_threshold',
-                        help='Overlap threshold',
-                        type=float, 
-                        dest='nms',
-                        required=False)
-    parser.add_argument('-s', '--scale',
-                        help='Scale factor',
-                        type=float, 
-                        dest='scale',
-                        required=False)
-    parser.add_argument('-sz', '--size',
-                        help='Size input model',
-                        nargs=2,
-                        type = int,
-                        dest='size',
-                        required=False)
-    parser.add_argument('-me', '--mean',
-                        help='The average picture',
-                        nargs=3,
-                        type = float,
-                        dest='mean',
-                        required=False)
-    parser.add_argument('-sw', '--swapRB',
-                        help='swapRB',
-                        type=bool, 
-                        dest='swapRB',
-                        required=False)
-    
+                        required=True)
+
     args = parser.parse_args()
     return args
 
-def main():
+def parse_yaml_file(yaml_file):
     
+    with open(yaml_file) as fh:
+        data = yaml.safe_load(fh)
+    data = data[0]
+    
+    mode = data.get('mode')
+
+    if mode == None:
+        raise ValueError('mode is not specified. This parameter is required.')
+    
+    if mode != 'image' and mode != 'video':
+        raise ValueError('The mode is specified incorrectly.') 
+    
+    if mode == 'image' and data.get('images_path') == None:
+        raise ValueError('In image mode, the images_path parameter is required.') 
+    
+    if mode == 'video' and data.get('video_path') == None:
+        raise ValueError('In video mode, the video_path parameter is required.') 
+
+    model_name = data.get('model_name')
+
+    if model_name == None:
+        raise ValueError('model_name is not specified. This parameter is required.')
+
+    list_models = ['YOLOv4', 'YOLOv3_tiny', 'rcnn_resnet50', 'rcnn_resnet_v2', 'efficientdet_d1', 'efficientdet_d0', 'lite_mobilenet_v2', 'MobileNet']
+    
+    if not (model_name in list_models):
+         raise ValueError('The model_name is specified incorrectly.\n List of acceptable models: \'YOLOv4\', \'YOLOv3_tiny\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'efficientdet_d1\', \'efficientdet_d0\', \'lite_mobilenet_v2\', \'MobileNet\'') 
+
+    if data.get('path_classes') == None:
+         raise ValueError('path_classes is not specified. This parameter is required.')
+    
+    if data.get('path_weights') == None:
+         raise ValueError('path_weights is not specified. This parameter is required.')
+    
+    if data.get('path_config') == None:
+         raise ValueError('path_config is not specified. This parameter is required.')
+    
+    if data.get('confidence') == None:
+        data.update({'confidence' : 0.3})
+    else:
+        data['confidence'] = float(data['confidence'])
+        
+    if data.get('nms_threshold') == None:
+        data.update({'nms_threshold' : 0.4})
+    else:
+        data['nms_threshold'] = float(data['nms_threshold'])
+        
+    if data.get('scale') == None:
+        data.update({'scale' : 1.0})
+    else:
+        data['scale'] = float(data['scale'])
+        
+    if data.get('size') == None:
+         raise ValueError('size is not specified. This parameter is required.')
+    else:
+        data['size'] = list(map(int, data['size'].split(' ')))
+    
+    if data.get('mean') == None:
+        data.update({'mean' : [0.0, 0.0, 0.0]})
+    else:
+        data['mean'] = list(map(float, data['mean'].split(' ')))
+
+    if data.get('swapRB') == None:
+        data.update({'swapRB' : False})
+    else:
+        data['swapRB'] = bool(data['swapRB'])
+    
+    if data.get('groundtruth_path') == None:
+        data.update({'groundtruth_path' : None})
+        
+    if data.get('write_path') == None:
+        data.update({'write_path' : None})
+    
+    list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name', 'path_classes', 'path_weights', 'path_config', 'confidence',
+                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 'groundtruth_path', 'write_path']
+
+    entered_arg = data.keys()
+    
+    for arg in entered_arg:
+        if not (arg in list_arg):
+            raise ValueError(f'Incorrect parameter entered: {arg}')
+
+    return data
+
+def main():
+    """
+    Main execution function for the visualizer application.
+
+    Initializes data reader, detector, and visualizer components based on CLI arguments.
+    Shows visualization using the following workflow:
+    
+        1. Creates FrameDataReader based on input mode (video/image)
+        2. Initializes a writer with 'write_path' implementation
+        2. Initializes a detector with 'fake' implementation
+        3. Loads groundtruth data if provided
+        4. Configures visualizer with reader, detector, and groundtruth
+        5. Starts visualization display
+
+    Requires:
+        - Either video_path or images_path argument must match the specified mode
+        - model_path must point to a valid model file
+    """
     try:
         args = cli_argument_parser()
-    
-        if args.yaml_file != None:
-        
-            with open(args.yaml_file) as fh:
-                data = yaml.safe_load(fh)
-            data = data[0]
-        
-            reader = 0
-            if data['mode'] == 'image':
-                reader = FrameDataReader.create(data['mode'], data['images_path'])
-            elif data['mode'] == 'video':
-                reader = FrameDataReader.create(data['mode'], data['video_path'])
+        data = parse_yaml_file(args.yaml_file)
             
-            adapter = None
-            detector = Detector.create( data['model_name'], data['path_classes'], data['path_weights'], data['path_config'], float(data['confidence']),
-                                       float(data['nms_threshold']), float(data['scale']), list(map(int, data['size'].split(' '))), 
-                                       list(map(float, data['mean'].split(' '))), bool(data['swapRB']))
-            visualizer = Visualize( reader, detector, GroundtruthReader().read(data['groundtruth_path']) )
-            visualizer.show()
-        
-        else:
-            reader = FrameDataReader.create( args.mode, (args.video_path or args.images_path) )
-            adapter = None
-            detector = Detector.create( args.model_name, args.path_classes, args.path_weights, args.path_config, args.confidence, args.nms_threshold,
-                                       data.scale, data.size, args.mean, data.swapRB)
-            visualizer = Visualize( reader, detector, GroundtruthReader().read(args.groundtruth_path) )
-            visualizer.show()
+        reader = 0
+        if data['mode'] == 'image':
+            reader = FrameDataReader.create(data['mode'], data['images_path'])
+        elif data['mode'] == 'video':
+            reader = FrameDataReader.create(data['mode'], data['video_path'])
+            
+        writer = Writer.create(data['write_path'])
+        detector = Detector.create(data['model_name'], data['path_classes'], data['path_weights'], data['path_config'], data['confidence'],
+                                   data['nms_threshold'], data['scale'], data['size'], data['mean'], data['swapRB'])
+        gtreader = dr.FakeGTReader(data['groundtruth_path'])
+        visualizer = Visualize(reader, writer, detector, gtreader.read())
+        visualizer.show()
+
     except Exception as e:
-        raise Exception(e)
+        print(e)
 
 if __name__ == '__main__':
     main()
