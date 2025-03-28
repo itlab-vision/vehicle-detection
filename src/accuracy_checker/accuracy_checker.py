@@ -53,7 +53,7 @@ class AccuracyCalculator:
         self.matched_dets = {}      # dict: Matched detector predictions
                                     # (grouped by frame_id)
 
-    def load_groundtruths(self, file_path:str):
+    def load_groundtruths(self, file_path: str):
         """
         Downloading groundtruths from the file (.csv).
 
@@ -63,7 +63,7 @@ class AccuracyCalculator:
         self.gts_raw = self.__split_data_by_classes(parsed_data)
         self.gts_by_frames = self.__split_data_by_classes_and_frames(parsed_data)
 
-    def load_detections(self, file_path:str):
+    def load_detections(self, file_path: str):
         """
         Loading detections from the file (.csv).
 
@@ -225,7 +225,7 @@ class AccuracyCalculator:
 
         return precisions_total, recalls_total
 
-    def calc_ap(self, class_name:str):
+    def calc_ap(self, class_name: str):
         """
         Calculates Average Precision (AP).
 
@@ -233,6 +233,9 @@ class AccuracyCalculator:
         :return: The value of Average Precision (AP).
         """
         precisions, recalls = self.calc_precision_recall(class_name)
+
+        if len(precisions) == 0:
+            return 0
 
         cur_max_prec = precisions[-1]
         rec_end = recalls[-1]
