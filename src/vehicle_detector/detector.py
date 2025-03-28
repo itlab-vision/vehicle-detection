@@ -45,7 +45,6 @@ class Detector(ABC):
         self.mean = mean
         self.swapRB = swapRB
         self.adapter = adapter
-        self.model = 0
         
     @abstractmethod
     def detect(self, image):
@@ -55,13 +54,7 @@ class Detector(ABC):
         :param image: Input image array (OpenCV format)
         :return: list: Detection tuples (label, x1, y1, x2, y2)
         """ 
-        image_height, image_width, _ = image.shape
-        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size, mean=self.mean, swapRB = self.swapRB)
-         
-        self.model.setInput(blob)
-        boxes = self.model.forward()
-        
-        return self.adapter.postProcessing(boxes, image_width, image_height)
+        pass
     
     @staticmethod
     def create(model_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
@@ -80,41 +73,38 @@ class Detector(ABC):
             raise ValueError('Incorrect path to image.')
                 
         if model_name == 'YOLOv4':
-            return VehicleDetectorYOLO(model_name, path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLO(conf, nms, class_names))
+            return VehicleDetectorOpenCV(model_name, 'Darknet', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLO(conf, nms, class_names))
         elif model_name == 'YOLOv3_tiny':
-            return VehicleDetectorYOLO(model_name, path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLOTiny(conf, nms, class_names))
+            return VehicleDetectorOpenCV(model_name, 'ONNX', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLOTiny(conf, nms, class_names))
         elif model_name == 'rcnn_resnet50' or model_name == 'rcnn_resnet_v2' or model_name == 'efficientdet_d1' or model_name == 'efficientdet_d0' or model_name == 'lite_mobilenet_v2' or model_name == 'MobileNet':
-            return VehicleDetectorTensorFlow(model_name, path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterTensorFlow(conf, nms, class_names))
+            return VehicleDetectorOpenCV(model_name, 'TensorFlow', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterDetectionTask(conf, nms, class_names))
         elif model_name == "fake":
             return FakeDetector()
         else:
             raise ValueError(f"Unsupported model: {model_name}")
 
-class VehicleDetectorTensorFlow(Detector):
-    
-     def __init__(self, model_name, path_weights, path_config, scale, size, mean, swapRB, adapter):
+class VehicleDetectorOpenCV(Detector):
+    def __init__(self, model_name, format_load, path_weights, path_config, scale, size, mean, swapRB, adapter):
          
-         super().__init__(model_name, scale, size, mean, swapRB, adapter)
-         self.model = cv.dnn.readNet(model = path_weights, config = path_config, framework = 'TensorFlow')
-         
-     def detect(self, image):
-          return super().detect(image)
-
-class VehicleDetectorYOLO(Detector):
-    
-    def __init__(self, model_name, path_weights, path_config, scale, size, mean, swapRB, adapter):
-         
-         super().__init__(model_name, scale, size, mean, swapRB, adapter)
-         
-         if self.model_name == 'YOLOv4':
-            self.model = cv.dnn.readNet(model = path_weights, config = path_config, framework = 'Darknet')
-            
-         elif self.model_name == 'YOLOv3_tiny':
-            path_weights = Path(path_weights)
-            self.model = cv.dnn.readNetFromONNX(path_weights.absolute())
+        super().__init__(model_name, scale, size, mean, swapRB, adapter)
+        if format_load == 'TensorFlow':
+            self.model = cv.dnn.readNetFromTensorflow(path_weights, path_config)
+        elif format_load == 'Darknet':
+            self.model = cv.dnn.readNetFromDarknet(path_config, path_weights)
+        elif format_load == 'ONNX':
+            self.model = cv.dnn.readNetFromONNX(path_weights)
+        else:
+            raise ValueError('Incorrect format load.')
 
     def detect(self, image):
-         return super().detect(image)
+        
+        image_height, image_width, _ = image.shape
+        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size, mean=self.mean, swapRB = self.swapRB)
+         
+        self.model.setInput(blob)
+        boxes = self.model.forward()
+        
+        return self.adapter.postProcessing(boxes, image_width, image_height)
      
 class FakeDetector(Detector):
     """

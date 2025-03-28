@@ -1,18 +1,38 @@
 """
-CLI application "Vehicle detector"
+CLI Application "Vehicle Detector"
+
+A command-line interface application for detecting vehicles in images or video streams. 
+Supports multiple visualization modes, result recording, and accuracy calculations against 
+groundtruth data.
+
+Key Features:
+- Vehicle detection in image/video inputs
+- GUI/CLI visualization options
+- Result export capabilities
+- Precision metrics calculation (TPR, FDR, mAP)
+- Flexible pipeline configuration
+
+Modules:
+- data_reader: Handles input data loading
+- detector: Contains vehicle detection logic
+- visualizer: Provides visualization interfaces
+- writer: Manages result storage
+- accuracy_checker: Computes detection accuracy metrics
 """
 import argparse
-import yaml
+import config_parser
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application.visualizer import Visualize
+from src.gui_application.visualizer import BaseVisualizer
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
+from src.detector_pipeline.detector_pipeline import PipelineComponents, DetectionPipeline
+from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 
 def cli_argument_parser():
     parser = argparse.ArgumentParser()
@@ -26,126 +46,60 @@ def cli_argument_parser():
     args = parser.parse_args()
     return args
 
-def parse_yaml_file(yaml_file):
-    
-    with open(yaml_file) as fh:
-        data = yaml.safe_load(fh)
-    data = data[0]
-    
-    mode = data.get('mode')
+def config_main(parameters):
+    """
+    Configure pipeline components.
 
-    if mode == None:
-        raise ValueError('mode is not specified. This parameter is required.')
-    
-    if mode != 'image' and mode != 'video':
-        raise ValueError('The mode is specified incorrectly.') 
-    
-    if mode == 'image' and data.get('images_path') == None:
-        raise ValueError('In image mode, the images_path parameter is required.') 
-    
-    if mode == 'video' and data.get('video_path') == None:
-        raise ValueError('In video mode, the video_path parameter is required.') 
+    :param argparse.Namespace: Parsed command-line arguments
 
-    model_name = data.get('model_name')
-
-    if model_name == None:
-        raise ValueError('model_name is not specified. This parameter is required.')
-
-    list_models = ['YOLOv4', 'YOLOv3_tiny', 'rcnn_resnet50', 'rcnn_resnet_v2', 'efficientdet_d1', 'efficientdet_d0', 'lite_mobilenet_v2', 'MobileNet']
+    :return PipelineComponents: Configured pipeline objects with GUI visualizer
+    """
     
-    if not (model_name in list_models):
-         raise ValueError('The model_name is specified incorrectly.\n List of acceptable models: \'YOLOv4\', \'YOLOv3_tiny\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'efficientdet_d1\', \'efficientdet_d0\', \'lite_mobilenet_v2\', \'MobileNet\'') 
-
-    if data.get('path_classes') == None:
-         raise ValueError('path_classes is not specified. This parameter is required.')
-    
-    if data.get('path_weights') == None:
-         raise ValueError('path_weights is not specified. This parameter is required.')
-    
-    if data.get('path_config') == None:
-         raise ValueError('path_config is not specified. This parameter is required.')
-    
-    if data.get('confidence') == None:
-        data.update({'confidence' : 0.3})
-    else:
-        data['confidence'] = float(data['confidence'])
+    reader = 0
+    if parameters['mode'] == 'image':
+        reader = FrameDataReader.create(parameters['mode'], parameters['images_path'])
+    elif parameters['mode'] == 'video':
+        reader = FrameDataReader.create(parameters['mode'], parameters['video_path'])
         
-    if data.get('nms_threshold') == None:
-        data.update({'nms_threshold' : 0.4})
-    else:
-        data['nms_threshold'] = float(data['nms_threshold'])
-        
-    if data.get('scale') == None:
-        data.update({'scale' : 1.0})
-    else:
-        data['scale'] = float(data['scale'])
-        
-    if data.get('size') == None:
-         raise ValueError('size is not specified. This parameter is required.')
-    else:
-        data['size'] = list(map(int, data['size'].split(' ')))
+    detector = Detector.create(parameters['model_name'], parameters['path_classes'], parameters['path_weights'], parameters['path_config'], parameters['confidence'],
+                               parameters['nms_threshold'], parameters['scale'], parameters['size'], parameters['mean'], parameters['swapRB'])
     
-    if data.get('mean') == None:
-        data.update({'mean' : [0.0, 0.0, 0.0]})
-    else:
-        data['mean'] = list(map(float, data['mean'].split(' ')))
-
-    if data.get('swapRB') == None:
-        data.update({'swapRB' : False})
-    else:
-        data['swapRB'] = bool(data['swapRB'])
+    visualizer = BaseVisualizer.create(parameters['silent_mode'])
+    writer = Writer.create(parameters['write_path']) if parameters['write_path'] else None
+    gt_reader = dr.CsvGTReader(parameters['groundtruth_path']) if parameters['groundtruth_path'] else None
     
-    if data.get('groundtruth_path') == None:
-        data.update({'groundtruth_path' : None})
-        
-    if data.get('write_path') == None:
-        data.update({'write_path' : None})
-    
-    list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name', 'path_classes', 'path_weights', 'path_config', 'confidence',
-                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 'groundtruth_path', 'write_path']
-
-    entered_arg = data.keys()
-    
-    for arg in entered_arg:
-        if not (arg in list_arg):
-            raise ValueError(f'Incorrect parameter entered: {arg}')
-
-    return data
+    return PipelineComponents(reader, detector, visualizer, writer, gt_reader)
 
 def main():
-    """
-    Main execution function for the visualizer application.
+    """"
+    Main execution flow for vehicle detection application.
 
-    Initializes data reader, detector, and visualizer components based on CLI arguments.
-    Shows visualization using the following workflow:
-    
-        1. Creates FrameDataReader based on input mode (video/image)
-        2. Initializes a writer with 'write_path' implementation
-        2. Initializes a detector with 'fake' implementation
-        3. Loads groundtruth data if provided
-        4. Configures visualizer with reader, detector, and groundtruth
-        5. Starts visualization display
+    Workflow:
+    1. Parse command-line arguments
+    2. Configure detection pipeline
+    3. Run vehicle detection process
+    4. Calculate and display accuracy metrics (if groundtruth provided)
+    5. Handle and report runtime errors
 
     Requires:
-        - Either video_path or images_path argument must match the specified mode
-        - model_path must point to a valid model file
+    - Valid input path matching selected mode
+    - Accessible detection model file
+    - Compatible groundtruth format (when provided)
     """
     try:
         args = cli_argument_parser()
-        data = parse_yaml_file(args.yaml_file)
-            
-        reader = 0
-        if data['mode'] == 'image':
-            reader = FrameDataReader.create(data['mode'], data['images_path'])
-        elif data['mode'] == 'video':
-            reader = FrameDataReader.create(data['mode'], data['video_path'])
-            
-        writer = Writer.create(data['write_path'])
-        detector = Detector.create(data['model_name'], data['path_classes'], data['path_weights'], data['path_config'], data['confidence'],
-                                   data['nms_threshold'], data['scale'], data['size'], data['mean'], data['swapRB'])
-        gtreader = dr.FakeGTReader(data['groundtruth_path'])
-        visualizer = Visualize(reader, writer, detector, gtreader.read())
-        visualizer.show()
+        parameters = config_parser.parse_yaml_file(args.yaml_file)
+        components = config_main(parameters)
+        pipeline = DetectionPipeline(components)
+        pipeline.run()
+
+        if all([parameters['groundtruth_path'], parameters['write_path']]):
+            accur_calc = AccuracyCalculator()
+            accur_calc.load_detections(parameters['write_path'])
+            accur_calc.load_groundtruths(parameters['groundtruth_path'])
+            print (f"TPR: {accur_calc.calc_tpr()}\n"
+                f"FDR: {accur_calc.calc_fdr()}\n"
+                f"MAP: {accur_calc.calc_map()}")
 
     except Exception as e:
         print(e)

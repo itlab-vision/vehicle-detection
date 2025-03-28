@@ -12,8 +12,17 @@ class Adapter(ABC):
     @abstractmethod
     def postProcessing(self, output, image_width, image_height):
         pass
+    
+    def _nms(self, boxes, confidences, classes_id):
+        indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
+        bboxes = []
+        for i in indexes:
+            bboxes.append((classes_id[i], int(boxes[i][0]), int(boxes[i][1]), int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
+            
+        return bboxes
+        
 
-class AdapterTensorFlow(Adapter):
+class AdapterDetectionTask(Adapter):
     
     def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
         super().__init__(conf, nms, class_names, interest_classes)
@@ -37,21 +46,12 @@ class AdapterTensorFlow(Adapter):
                 class_name = self.class_names[int(class_id)]
                 
                 if class_name in self.interest_classes:
-                    boxes.append((left, top, right - left, bottom - top))
+                    boxes.append((left, top, right, bottom))
                     classes_id.append(class_name)
                     confidences.append(confidence)
+                    
+        return self._nms(boxes, confidences, classes_id)
 
-        indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
-        bboxes = []
-        for i in indexes:
-            box = boxes[i]
-            x1 = box[0]
-            y1 = box[1]
-            w = box[2]
-            h = box[3]
-            bboxes.append((classes_id[i], x1, y1, x1 + w, y1 + h, confidences[i]))
-            
-        return bboxes
 
 class AdapterYOLO(Adapter):
     
@@ -76,28 +76,18 @@ class AdapterYOLO(Adapter):
                 h = int(detection[3] * image_height)          
 
                 if class_name in self.interest_classes:
-                    boxes.append((cx1 - w // 2, cy1 - h // 2, w, h))
+                    boxes.append((cx1 - w // 2, cy1 - h // 2, cx1 + w // 2, cy1 + h // 2))
                     classes_id.append(class_name)
                     confidences.append(confidence)
                     
-        indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
-        bboxes = []  
-        for i in indexes:
-            box = boxes[i]
-            x1 = box[0]
-            y1 = box[1]
-            w = box[2]
-            h = box[3]
-            bboxes.append((classes_id[i], x1, y1, x1 + w, y1 + h, confidences[i]))
-
-        return bboxes    
+        return self._nms(boxes, confidences, classes_id)  
 
 class AdapterYOLOTiny(Adapter):
     
     def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
         super().__init__(conf, nms, class_names, interest_classes)       
 
-    def demo_postprocess(self, outputs, img_size, p6=False):
+    def __demo_postprocess(self, outputs, img_size, p6=False):
         grids = []
         expanded_strides = []
         strides = [8, 16, 32] if not p6 else [8, 16, 32, 64]
@@ -119,7 +109,7 @@ class AdapterYOLOTiny(Adapter):
 
     def postProcessing(self, output, image_width, image_height):
         
-        predictions = self.demo_postprocess(output[0], (416, 416))
+        predictions = self.__demo_postprocess(output[0], (416, 416))
         rh = 416 / image_height
         rw = 416 / image_width
         boxes = predictions[:, :4]
@@ -131,18 +121,16 @@ class AdapterYOLOTiny(Adapter):
         boxes_xyxy[:, 2] = boxes[:, 0] / rw + boxes[:, 2]/2. / rw
         boxes_xyxy[:, 3] = boxes[:, 1] / rh + boxes[:, 3]/2. / rh
         
-        classes_id = scores.argmax(1)
-        confidences = scores[np.arange(len(classes_id)), classes_id]
+        all_classes_id = scores.argmax(1)
+        all_confidences = scores[np.arange(len(all_classes_id)), all_classes_id]
         
-        indexes = cv.dnn.NMSBoxes(boxes_xyxy, confidences, self.conf, self.nms)
-        bboxes = []  
-        for i in indexes:
-            if self.class_names[classes_id[i]] in self.interest_classes:
-                box = boxes_xyxy[i]
-                x1 = int(box[0])
-                y1 = int(box[1])
-                x2 = int(box[2])
-                y2 = int(box[3])
-                bboxes.append((self.class_names[classes_id[i]], x1, y1, x2, y2, confidences[i]))
-
-        return bboxes  
+        classes_id = []
+        boxes = []
+        confidences = []
+        for i, class_id in zip(range(len(all_classes_id)), all_classes_id):
+            if self.class_names[class_id] in self.interest_classes:
+                classes_id.append(self.class_names[class_id])
+                boxes.append(boxes_xyxy[i])
+                confidences.append(all_confidences[i])
+        
+        return self._nms(boxes, confidences, classes_id)
