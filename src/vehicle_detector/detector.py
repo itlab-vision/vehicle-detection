@@ -50,11 +50,11 @@ class Detector(ABC):
     def detect(self, image):
         """
         Process image and return detected objects.
-
+        
         :param image: Input image array (OpenCV format)
         :return: list: Detection tuples (label, x1, y1, x2, y2)
         """ 
-        pass
+        
     
     @staticmethod
     def create(model_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
@@ -67,7 +67,7 @@ class Detector(ABC):
         """
         path_classes = Path(path_classes).absolute()
         if path_classes.exists():
-            with open(path_classes, 'r') as f:
+            with open(path_classes, 'r', 'utf-8') as f:
                 class_names = f.read().split('\n')
         else:
             raise ValueError('Incorrect path to image.')
@@ -120,6 +120,7 @@ class FakeDetector(Detector):
         """
         :param seed: Random seed for reproducibility
         """
+        super().__init__(0, 0, 0, 0, 0, 0)
         if seed is not None:
             random.seed(seed)
 
