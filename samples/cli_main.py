@@ -1,5 +1,23 @@
 """
-CLI application "Vehicle detector"
+CLI Application "Vehicle Detector"
+
+A command-line interface application for detecting vehicles in images or video streams. 
+Supports multiple visualization modes, result recording, and accuracy calculations against 
+groundtruth data.
+
+Key Features:
+- Vehicle detection in image/video inputs
+- GUI/CLI visualization options
+- Result export capabilities
+- Precision metrics calculation (TPR, FDR, mAP)
+- Flexible pipeline configuration
+
+Modules:
+- data_reader: Handles input data loading
+- detector: Contains vehicle detection logic
+- visualizer: Provides visualization interfaces
+- writer: Manages result storage
+- accuracy_checker: Computes detection accuracy metrics
 """
 import argparse
 import sys
@@ -7,11 +25,13 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.gui_application.visualizer import Visualize
+from src.gui_application.visualizer import BaseVisualizer
 from src.utils import data_reader as dr
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
+from src.detector_pipeline.detector_pipeline import PipelineComponents, DetectionPipeline
+from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 
 
 def cli_argument_parser():
@@ -67,38 +87,65 @@ def cli_argument_parser():
                         dest='write_path',
                         required=False,
                         default=None)
+    parser.add_argument('-s', '--silent',
+                        help='Set silent mode of program',
+                        action='store_true',
+                        dest='silent_mode')
+
     args = parser.parse_args()
     return args
 
-def main():
-    """
-    Main execution function for the visualizer application.
 
-    Initializes data reader, detector, and visualizer components based on CLI arguments.
-    Shows visualization using the following workflow:
-    
-        1. Creates FrameDataReader based on input mode (video/image)
-        2. Initializes a writer with 'write_path' implementation
-        2. Initializes a detector with 'fake' implementation
-        3. Loads groundtruth data if provided
-        4. Configures visualizer with reader, detector, and groundtruth
-        5. Starts visualization display
+def config_main(args: argparse.Namespace):
+    """
+    Configure pipeline components.
+
+    :param argparse.Namespace: Parsed command-line arguments
+
+    :return PipelineComponents: Configured pipeline objects with GUI visualizer
+    """
+    return PipelineComponents(
+            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
+            detector = Detector.create( "fake" ),
+            visualizer = BaseVisualizer.create(args.silent_mode),
+            writer = Writer.create(args.write_path) if args.write_path else None,
+            gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
+
+
+def main():
+    """"
+    Main execution flow for vehicle detection application.
+
+    Workflow:
+    1. Parse command-line arguments
+    2. Configure detection pipeline
+    3. Run vehicle detection process
+    4. Calculate and display accuracy metrics (if groundtruth provided)
+    5. Handle and report runtime errors
 
     Requires:
-        - Either video_path or images_path argument must match the specified mode
-        - model_path must point to a valid model file
+    - Valid input path matching selected mode
+    - Accessible detection model file
+    - Compatible groundtruth format (when provided)
     """
     try:
         args = cli_argument_parser()
-        reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path))
-        writer = Writer.create(args.write_path)
-        detector = Detector.create( "fake" )
-        gtreader = dr.FakeGTReader(args.groundtruth_path)
-        visualizer = Visualize(reader, writer, detector, gtreader.read())
-        visualizer.show()
+
+        components = config_main(args)
+
+        pipeline = DetectionPipeline(components)
+        pipeline.run()
+
+        if all([args.groundtruth_path, args.write_path]):
+            accur_calc = AccuracyCalculator()
+            accur_calc.load_detections(args.write_path)
+            accur_calc.load_groundtruths(args.groundtruth_path)
+            print (f"TPR: {accur_calc.calc_tpr()}\n"
+                f"FDR: {accur_calc.calc_fdr()}\n"
+                f"MAP: {accur_calc.calc_map()}")
+
     except Exception as e:
         print(e)
-
 
 if __name__ == '__main__':
     main()

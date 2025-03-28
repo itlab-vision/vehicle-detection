@@ -25,10 +25,23 @@ class FrameDataReader(ABC):
     Defines the interface for iterating through frames from different sources.
     
     Methods:
-        create: Factory method to instantiate appropriate reader
+        create: Factory method to instantiate appropriate reader (static)
+        __enter__: Context manager entry (abstract)
+        __exit__: Context manager exit with resource cleanup (abstract)
         __iter__: Returns iterator object (abstract)
         __next__: Returns next frame (abstract)
     """
+    @abstractmethod
+    def __enter__(self):
+        """
+        Context manager entry point.
+
+        :return self: Object instance
+        """
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Release resources on exit."""
 
     @abstractmethod
     def __iter__(self):
@@ -41,10 +54,16 @@ class FrameDataReader(ABC):
         """
         Get next frame in sequence.
         
-        :return: ndarray: Next frame as numpy array
-        :raise: StopIteration: When no more frames available
+        :return ndarray: Next frame as numpy array
+        :raise StopIteration: When no more frames available
         """
+    @abstractmethod
+    def get_total_images(self):
+        """
+        Get number of images
 
+        :return int: total images
+        """
     @staticmethod
     def create(mode: str, dir_path: str):
         """
@@ -52,8 +71,8 @@ class FrameDataReader(ABC):
         
         :param mode: Source type - 'video' or 'image'
         :param dir_path: Path to video file or image directory
-        :return: FrameDataReader: Concrete reader instance
-        :raises: ValueError: For unsupported modes or invalid paths
+        :return FrameDataReader: Concrete reader instance
+        :raise ValueError: For unsupported modes or invalid paths
         """
         if mode == "video":
             return VideoDataReader(dir_path)
@@ -75,16 +94,32 @@ class VideoDataReader(FrameDataReader):
         Initialize video capture and validate path.
 
         :param video_path: Path to video file
-        :raise: ValueError: If video file cannot be opened
+        :raise ValueError: If video file cannot be opened
         """
         self.video_path = video_path
-        self.cap = cv.VideoCapture(video_path)
-        if not self.cap.isOpened():
-            raise ValueError(f"Cannot open video file: {video_path}")
+        self._cap = None
+
+    def get_total_images(self):
+        """
+        :return int: number of images
+        """
+        return int(self._cap.get(cv.CAP_PROP_FRAME_COUNT))
+
+    def __enter__(self):
+        """Initialize video capture and return iterator."""
+        self._cap = cv.VideoCapture(self.video_path)
+        if not self._cap.isOpened():
+            raise IOError(f"Could not open video file: {self.video_path}")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Release video resources on exit."""
+        if self._cap and self._cap.isOpened():
+            self._cap.release()
 
     def __iter__(self):
         """
-        :return: self: Iterator instance
+        :return self: Iterator instance
         """
         return self
 
@@ -92,14 +127,13 @@ class VideoDataReader(FrameDataReader):
         """
         Get next video frame.
 
-        :return: ndarray: Next video frame as numpy array
-        :raise: StopIteration: When video ends or is closed
+        :return ndarray: Next video frame as numpy array
+        :raise StopIteration: When video ends or is closed
         """
-        if self.cap.isOpened():
-            ret, frame = self.cap.read()
+        if self._cap.isOpened():
+            ret, frame = self._cap.read()
             if ret:
                 return frame
-            self.cap.release()
             raise StopIteration
         raise StopIteration
 
@@ -117,20 +151,51 @@ class ImgDataReader(FrameDataReader):
         Validate directory and prepare image file list.
 
         :param dir_path: Path to image directory
-        :raise: ValueError: For invalid directory path
+        :raise ValueError: For invalid directory path
         """
         self.index = 0
-        dir_path = Path(dir_path)
-        if not dir_path.exists():
-            raise ValueError(f"Images directory does not exist: {dir_path}")
+        self.dir_path = Path(dir_path)
+        self._validate_directory()
+        self._prepare_file_list()
+
+    def _validate_directory(self):
+        """Ensure directory exists and is accessible."""
+        if not self.dir_path.exists():
+            raise ValueError(f"Invalid image directory: {self.dir_path}")
+        if not self.dir_path.is_dir():
+            raise ValueError(f"Path is not a directory: {self.dir_path}")
+
+    def _prepare_file_list(self):
+        """Create sorted list of valid image files."""
+        valid_extensions = {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
         self.image_files = [
-            str(file) for file in dir_path.iterdir()
-            if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
+            str(file) for file in self.dir_path.iterdir()
+            if file.is_file() and file.suffix.lower() in valid_extensions
         ]
+
+        if not self.image_files:
+            raise ValueError(f"No valid images found in: {self.dir_path}")
+
+    def get_total_images(self):
+        """
+        :return int: number of images
+        """
+        return len(self.image_files)
+
+    def __enter__(self):
+        """
+        Context manager entry point.
+        
+        :return self: Object instanse
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Release resources on exit."""
 
     def __iter__(self):
         """
-        :return: self: Iterator instance
+        :return self: Iterator instance
         """
         return self
 
@@ -140,8 +205,8 @@ class ImgDataReader(FrameDataReader):
 
         :return: ndarray: Image data as numpy array
 
-        :raise: StopIteration: When all images processed
-        :raise: ValueError: If image file cannot be read
+        :raise StopIteration: When all images processed
+        :raise ValueError: If image file cannot be read
         """
         if self.index < len(self.image_files):
             img_path = self.image_files[self.index]
