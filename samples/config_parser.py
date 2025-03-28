@@ -28,16 +28,16 @@ def parse_yaml_file(yaml_file):
     list_models = ['YOLOv4', 'YOLOv3_tiny', 'rcnn_resnet50', 'rcnn_resnet_v2', 'efficientdet_d1', 'efficientdet_d0', 'lite_mobilenet_v2', 'MobileNet']
     
     if not (model_name in list_models):
-         raise ValueError('The model_name is specified incorrectly.\n List of acceptable models: \'YOLOv4\', \'YOLOv3_tiny\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'efficientdet_d1\', \'efficientdet_d0\', \'lite_mobilenet_v2\', \'MobileNet\'') 
+        raise ValueError('The model_name is specified incorrectly.\n List of acceptable models: \'YOLOv4\', \'YOLOv3_tiny\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'efficientdet_d1\', \'efficientdet_d0\', \'lite_mobilenet_v2\', \'MobileNet\'') 
 
     if parameters.get('path_classes') == None:
-         raise ValueError('path_classes is not specified. This parameter is required.')
+        raise ValueError('path_classes is not specified. This parameter is required.')
     
     if parameters.get('path_weights') == None:
-         raise ValueError('path_weights is not specified. This parameter is required.')
+        raise ValueError('path_weights is not specified. This parameter is required.')
     
     if parameters.get('path_config') == None:
-         parameters.update({'path_config' : None}) 
+        parameters.update({'path_config' : None}) 
     
     if parameters.get('confidence') == None:
         parameters.update({'confidence' : 0.3})
@@ -55,7 +55,7 @@ def parse_yaml_file(yaml_file):
         parameters['scale'] = float(parameters['scale'])
         
     if parameters.get('size') == None:
-         raise ValueError('size is not specified. This parameter is required.')
+        raise ValueError('size is not specified. This parameter is required.')
     else:
         parameters['size'] = list(map(int, parameters['size'].split(' ')))
     

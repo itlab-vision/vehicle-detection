@@ -3,7 +3,9 @@ import cv2 as cv
 from abc import ABC, abstractmethod
 
 class Adapter(ABC):
-    def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
+    def __init__(self, conf, nms, class_names, interest_classes = None):
+        if interest_classes == None:
+            interest_classes = ['car', 'bus', 'truck']
         self.conf = conf
         self.nms = nms
         self.class_names = class_names
@@ -17,19 +19,14 @@ class Adapter(ABC):
         indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
         bboxes = []
         for i in indexes:
-            box = boxes[i]
-            x1 = int(box[0])
-            y1 = int(box[1])
-            w = int(box[2])
-            h = int(box[3])
-            bboxes.append((classes_id[i], x1, y1, w, h, confidences[i]))
+            bboxes.append((classes_id[i], int(boxes[i][0]), int(boxes[i][1]), int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
             
         return bboxes
         
 
 class AdapterDetectionTask(Adapter):
     
-    def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
+    def __init__(self, conf, nms, class_names, interest_classes = None):
         super().__init__(conf, nms, class_names, interest_classes)
 
     def postProcessing(self, output, image_width, image_height):
@@ -60,7 +57,7 @@ class AdapterDetectionTask(Adapter):
 
 class AdapterYOLO(Adapter):
     
-    def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
+    def __init__(self, conf, nms, class_names, interest_classes = None):
         super().__init__(conf, nms, class_names, interest_classes)
     
     def postProcessing(self, output, image_width, image_height):
@@ -89,7 +86,7 @@ class AdapterYOLO(Adapter):
 
 class AdapterYOLOTiny(Adapter):
     
-    def __init__(self, conf, nms, class_names, interest_classes = ['car', 'bus', 'truck']):
+    def __init__(self, conf, nms, class_names, interest_classes = None):
         super().__init__(conf, nms, class_names, interest_classes)       
 
     def __demo_postprocess(self, outputs, img_size, p6=False):
