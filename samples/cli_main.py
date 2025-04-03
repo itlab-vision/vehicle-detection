@@ -19,10 +19,11 @@ Modules:
 - writer: Manages result storage
 - accuracy_checker: Computes detection accuracy metrics
 """
-import argparse
-import config_parser
 import sys
 from pathlib import Path
+import argparse
+import config_parser
+
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -54,22 +55,24 @@ def config_main(parameters):
 
     :return PipelineComponents: Configured pipeline objects with GUI visualizer
     """
-    
+
     reader = 0
     if parameters['mode'] == 'image':
         reader = FrameDataReader.create(parameters['mode'], parameters['images_path'])
     elif parameters['mode'] == 'video':
         reader = FrameDataReader.create(parameters['mode'], parameters['video_path'])
-        
+
     detector = Detector.create(parameters['adapter_name'], parameters['path_classes'],
-                              (parameters['path_weights'], parameters['path_config']), 
+                              (parameters['path_weights'], parameters['path_config']),
                               (parameters['confidence'], parameters['nms_threshold']),
-                              (parameters['scale'], parameters['size'], parameters['mean'], parameters['swapRB']))
-    
+                              (parameters['scale'], parameters['size'], parameters['mean'],
+                               parameters['swapRB']))
+
     visualizer = BaseVisualizer.create(parameters['silent_mode'])
     writer = Writer.create(parameters['write_path']) if parameters['write_path'] else None
-    gt_reader = dr.CsvGTReader(parameters['groundtruth_path']) if parameters['groundtruth_path'] else None
-    
+    gr_p = parameters['groundtruth_path']
+    gt_reader = dr.CsvGTReader(gr_p) if gr_p else None
+
     return PipelineComponents(reader, detector, visualizer, writer, gt_reader)
 
 def main():
@@ -89,7 +92,7 @@ def main():
     - Compatible groundtruth format (when provided)
     """
     try:
-        
+
         args = cli_argument_parser()
         parameters = config_parser.parse_yaml_file(args.yaml_file)
         components = config_main(parameters)

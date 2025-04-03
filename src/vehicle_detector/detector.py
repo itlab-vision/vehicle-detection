@@ -73,16 +73,15 @@ class Detector(ABC):
                 
         if adapter_name == 'AdapterYOLO':
             return VehicleDetectorOpenCV('Darknet', paths, param_detect, ad.AdapterYOLO(param_adapter[0], param_adapter[1], class_names))
-        elif adapter_name == 'AdapterYOLOTiny':
+        if adapter_name == 'AdapterYOLOTiny':
             return VehicleDetectorOpenCV('ONNX', paths, param_detect, ad.AdapterYOLOTiny(param_adapter[0], param_adapter[1], class_names))
-        elif adapter_name == 'AdapterDetectionTask':
+        if adapter_name == 'AdapterDetectionTask':
             return VehicleDetectorOpenCV('TensorFlow', paths, param_detect, ad.AdapterDetectionTask(param_adapter[0], param_adapter[1], class_names))
-        elif adapter_name == 'AdapterFasterRCNN':
+        if adapter_name == 'AdapterFasterRCNN':
             return VehicleDetectorFasterRCNN(param_detect, ad.AdapterFasterRCNN(param_adapter[0], param_adapter[1], class_names))
-        elif adapter_name == "fake":
+        if adapter_name == "fake":
             return FakeDetector()
-        else:
-            raise ValueError(f"Unsupported adapter: {adapter_name}")
+        raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 class VehicleDetectorOpenCV(Detector):
     def __init__(self, format_load, paths, param_detect, adapter):
