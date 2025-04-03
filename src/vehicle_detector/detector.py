@@ -92,6 +92,9 @@ class Detector(ABC):
         raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 class VehicleDetectorOpenCV(Detector):
+    """
+    vehicle detection
+    """
     def __init__(self, format_load, paths, param_detect, adapter):
 
         super().__init__(param_detect, adapter)

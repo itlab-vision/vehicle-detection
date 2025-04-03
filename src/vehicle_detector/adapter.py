@@ -1,9 +1,40 @@
+"""
+Detection Output Adapters
+
+Provides a standardized interface for processing raw outputs from different object detection models.
+
+Functionality:
+- Converts model-specific output formats into a unified list of detections.
+- Filters detections by confidence threshold.
+- Supports Non-Maximum Suppression (NMS) for reducing redundant detections.
+- Maps numerical class labels to human-readable class names.
+
+Classes:
+    :Adapter: Abstract base class defining the interface for detection output processing.
+    :AdapterFasterRCNN: Concrete implementation for processing Faster R-CNN outputs.
+
+Dependencies:
+    :cv2: for image handling and Non-Maximum Suppression (NMS)
+    :numpy: for numerical operations
+    :abc: for abstract base class support
+"""
 from abc import ABC, abstractmethod
 import numpy as np
 import cv2 as cv
 
 class Adapter(ABC):
+    """
+    Abstract adapter class that transforms the detector's output into the required format.
+    """
     def __init__(self, conf, nms, class_names, interest_classes = None):
+        """
+        Initializes the adapter with confidence and NMS thresholds.
+
+        :param conf: Confidence threshold for detections.
+        :param nms: Non-Maximum Suppression (NMS) threshold.
+        :param class_names: List of class names.
+        :param interest_classes: List of interest class names.
+        """
         if interest_classes is None:
             interest_classes = ['car', 'bus', 'truck']
         self.conf = conf
@@ -13,7 +44,14 @@ class Adapter(ABC):
 
     @abstractmethod
     def post_processing(self, output, image_width, image_height):
-        pass
+        """
+        Processes the model output and converts it to [class, x1, y1, x2, y2, confidence] format.
+
+        :param output: Raw model output (detections).
+        :param image_width: Width of the original image.
+        :param image_height: Height of the original image.
+        :return: List of detections in [class, x1, y1, x2, y2, confidence] format.
+        """
 
     def _nms(self, boxes, confidences, classes_id):
         indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
@@ -72,7 +110,9 @@ class AdapterFasterRCNN(Adapter):
         return [detections[i] for i in indexes]
 
 class AdapterDetectionTask(Adapter):
-
+    """
+    Adapter for processing model output.
+    """
     def post_processing(self, output, image_width, image_height):
         classes_id = []
         confidences = []
@@ -97,7 +137,9 @@ class AdapterDetectionTask(Adapter):
         return self._nms(boxes, confidences, classes_id)
 
 class AdapterYOLO(Adapter):
-
+    """
+    Adapter for processing YOLO model output.
+    """
     def post_processing(self, output, image_width, image_height):
         classes_id = []
         boxes = []
@@ -123,7 +165,9 @@ class AdapterYOLO(Adapter):
         return self._nms(boxes, confidences, classes_id)
 
 class AdapterYOLOTiny(Adapter):
-
+    """
+    Adapter for processing YOLO-tiny model output.
+    """
     def __demo_postprocess(self, outputs, img_size, p6=False):
         grids = []
         expanded_strides = []
