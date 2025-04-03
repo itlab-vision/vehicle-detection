@@ -1,7 +1,7 @@
 import yaml
 from pathlib import Path
 
-'''
+"""
 example of a yaml file
 
 - mode : image
@@ -20,11 +20,11 @@ example of a yaml file
   mean: 123.675 116.28 103.53
   swapRB: 1
   silent_mode: 0
-'''
+"""
 
 def parse_yaml_file(yaml_file):
     
-    with open(yaml_file) as fh:
+    with open(yaml_file, 'r', encoding = 'utf-8') as fh:
         parameters = yaml.safe_load(fh)
     parameters = parameters[0]
     

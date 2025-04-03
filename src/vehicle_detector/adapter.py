@@ -28,16 +28,6 @@ class AdapterFasterRCNN(Adapter):
     Adapter for processing Faster R-CNN model output.
     """
 
-    def __init__(self, conf, nms, class_names, interest_classes = None):
-        """
-        Initializes the adapter with confidence and NMS thresholds.
-
-        :param conf_threshold: Confidence threshold for detections.
-        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
-        :param class_names: List of class names to detect (e.g., ['car', 'bus']).
-        """
-        super().__init__(conf, nms, class_names, interest_classes)
-
     def postProcessing(self, output: list, image_width: int, image_height: int):
         """
         Transforms Faster R-CNN output into a readable format.
@@ -81,9 +71,6 @@ class AdapterFasterRCNN(Adapter):
         return [detections[i] for i in indexes]
 
 class AdapterDetectionTask(Adapter):
-    
-    def __init__(self, conf, nms, class_names, interest_classes = None):
-        super().__init__(conf, nms, class_names, interest_classes)
 
     def postProcessing(self, output, image_width, image_height):
         classes_id = []
@@ -113,9 +100,6 @@ class AdapterDetectionTask(Adapter):
 
 class AdapterYOLO(Adapter):
     
-    def __init__(self, conf, nms, class_names, interest_classes = None):
-        super().__init__(conf, nms, class_names, interest_classes)
-    
     def postProcessing(self, output, image_width, image_height):
         classes_id = []
         boxes = []
@@ -141,9 +125,6 @@ class AdapterYOLO(Adapter):
         return self._nms(boxes, confidences, classes_id)  
 
 class AdapterYOLOTiny(Adapter):
-    
-    def __init__(self, conf, nms, class_names, interest_classes = None):
-        super().__init__(conf, nms, class_names, interest_classes)       
 
     def __demo_postprocess(self, outputs, img_size, p6=False):
         grids = []

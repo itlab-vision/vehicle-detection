@@ -23,7 +23,7 @@ import torch
 import torchvision
 import random
 from abc import ABC, abstractmethod
-import adapter
+import adapter as ad
 
 class Detector(ABC):   
     """
@@ -54,33 +54,31 @@ class Detector(ABC):
         
         :param image: Input image array (OpenCV format)
         :return: list: Detection tuples (label, x1, y1, x2, y2)
-        """ 
-        pass        
+        """   
     
     @staticmethod
     def create(adapter_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
         """
         Factory method for creating detector instances.
         
-        :param mode: Detector variant selector
         :return: Detector: Concrete subclass instance
         :raise: ValueError: For unsupported mode specifications
         """
         path_classes = Path(path_classes).absolute()
         if path_classes.exists():
-            with open(path_classes, 'r') as f:
+            with open(path_classes, 'r', encoding = 'utf-8') as f:
                 class_names = f.read().split('\n')
         else:
             raise ValueError('Incorrect path to image.')
                 
         if adapter_name == 'AdapterYOLO':
-            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLO(conf, nms, class_names))
+            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterYOLO(conf, nms, class_names))
         elif adapter_name == 'AdapterYOLOTiny':
-            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLOTiny(conf, nms, class_names))
+            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterYOLOTiny(conf, nms, class_names))
         elif adapter_name == 'AdapterDetectionTask':
-            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterDetectionTask(conf, nms, class_names))
+            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterDetectionTask(conf, nms, class_names))
         elif adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(scale, size, mean, swapRB, adapter.AdapterFasterRCNN(conf, nms, class_names))
+            return VehicleDetectorFasterRCNN(scale, size, mean, swapRB, ad.AdapterFasterRCNN(conf, nms, class_names))
         elif adapter_name == "fake":
             return FakeDetector()
         else:
@@ -161,6 +159,7 @@ class FakeDetector(Detector):
         """
         if seed is not None:
             random.seed(seed)
+        super().__init__(None, None, None, None, None)
 
     def detect(self, image: np.ndarray):
         """
