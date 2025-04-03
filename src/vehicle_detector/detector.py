@@ -19,6 +19,8 @@ Dependencies:
 from pathlib import Path
 import cv2 as cv
 import numpy as np
+import torch
+import torchvision
 import random
 from abc import ABC, abstractmethod
 import adapter
@@ -38,8 +40,7 @@ class Detector(ABC):
         'fake': Testing detector with random boxes
     """
     
-    def __init__(self, model_name, scale, size, mean, swapRB, adapter):
-        self.model_name = model_name
+    def __init__(self, scale, size, mean, swapRB, adapter):
         self.scale = scale
         self.size = size
         self.mean = mean
@@ -54,10 +55,10 @@ class Detector(ABC):
         :param image: Input image array (OpenCV format)
         :return: list: Detection tuples (label, x1, y1, x2, y2)
         """ 
-        
+        pass        
     
     @staticmethod
-    def create(model_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
+    def create(adapter_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
         """
         Factory method for creating detector instances.
         
@@ -67,26 +68,28 @@ class Detector(ABC):
         """
         path_classes = Path(path_classes).absolute()
         if path_classes.exists():
-            with open(path_classes, 'r', 'utf-8') as f:
+            with open(path_classes, 'r') as f:
                 class_names = f.read().split('\n')
         else:
             raise ValueError('Incorrect path to image.')
                 
-        if model_name == 'YOLOv4':
-            return VehicleDetectorOpenCV(model_name, 'Darknet', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLO(conf, nms, class_names))
-        elif model_name == 'YOLOv3_tiny':
-            return VehicleDetectorOpenCV(model_name, 'ONNX', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLOTiny(conf, nms, class_names))
-        elif model_name == 'rcnn_resnet50' or model_name == 'rcnn_resnet_v2' or model_name == 'efficientdet_d1' or model_name == 'efficientdet_d0' or model_name == 'lite_mobilenet_v2' or model_name == 'MobileNet':
-            return VehicleDetectorOpenCV(model_name, 'TensorFlow', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterDetectionTask(conf, nms, class_names))
-        elif model_name == "fake":
+        if adapter_name == 'AdapterYOLO':
+            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLO(conf, nms, class_names))
+        elif adapter_name == 'AdapterYOLOTiny':
+            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterYOLOTiny(conf, nms, class_names))
+        elif adapter_name == 'AdapterDetectionTask':
+            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, scale, size, mean, swapRB, adapter.AdapterDetectionTask(conf, nms, class_names))
+        elif adapter_name == 'AdapterFasterRCNN':
+            return VehicleDetectorFasterRCNN(scale, size, mean, swapRB, adapter.AdapterFasterRCNN(conf, nms, class_names))
+        elif adapter_name == "fake":
             return FakeDetector()
         else:
-            raise ValueError(f"Unsupported model: {model_name}")
+            raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 class VehicleDetectorOpenCV(Detector):
-    def __init__(self, model_name, format_load, path_weights, path_config, scale, size, mean, swapRB, adapter):
+    def __init__(self, format_load, path_weights, path_config, scale, size, mean, swapRB, adapter):
          
-        super().__init__(model_name, scale, size, mean, swapRB, adapter)
+        super().__init__(scale, size, mean, swapRB, adapter)
         if format_load == 'TensorFlow':
             self.model = cv.dnn.readNetFromTensorflow(path_weights, path_config)
         elif format_load == 'Darknet':
@@ -105,6 +108,42 @@ class VehicleDetectorOpenCV(Detector):
         boxes = self.model.forward()
         
         return self.adapter.postProcessing(boxes, image_width, image_height)
+
+class VehicleDetectorFasterRCNN(Detector):
+    """
+    Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
+    """
+
+    def __init__(self, scale, size, mean, swapRB, adapter):
+        """
+        Initializes the Faster R-CNN vehicle detector.
+
+        :param class_names: List of class names to be detected (e.g., ['car', 'bus']).
+        :param conf_threshold: Confidence threshold for detections.
+        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
+        """
+        super().__init__(scale, size, mean, swapRB, adapter)
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+        self.model.eval()  # Set the model to evaluation mode
+
+    def detect(self, image: np.ndarray):
+        """
+        Performs object detection on the input image.
+
+        :param image: Input image as a NumPy array.
+        :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
+        """
+        # Convert the image to RGB and preprocess it
+        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
+
+        # Perform inference
+        with torch.no_grad():
+            outputs = self.model(image_tensor)
+
+        # Post-process the detections using the adapter
+        image_height, image_width, _ = image.shape
+        return self.adapter.postProcessing(outputs, image_width, image_height)
      
 class FakeDetector(Detector):
     """

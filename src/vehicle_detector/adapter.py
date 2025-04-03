@@ -23,6 +23,62 @@ class Adapter(ABC):
             
         return bboxes
         
+class AdapterFasterRCNN(Adapter):
+    """
+    Adapter for processing Faster R-CNN model output.
+    """
+
+    def __init__(self, conf, nms, class_names, interest_classes = None):
+        """
+        Initializes the adapter with confidence and NMS thresholds.
+
+        :param conf_threshold: Confidence threshold for detections.
+        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
+        :param class_names: List of class names to detect (e.g., ['car', 'bus']).
+        """
+        super().__init__(conf, nms, class_names, interest_classes)
+
+    def postProcessing(self, output: list, image_width: int, image_height: int):
+        """
+        Transforms Faster R-CNN output into a readable format.
+
+        :param output: Model output tensor (detections).
+        :param image_width: Original image width.
+        :param image_height: Original image height.
+        :return: List of detections [class, x1, y1, x2, y2, confidence].
+        """
+        boxes = output[0]['boxes'].cpu().numpy()
+        confidences = output[0]['scores'].cpu().numpy()
+        class_labels = output[0]['labels'].cpu().numpy()
+
+        bboxes = []
+
+        for _, (box, confidence, label) in enumerate(zip(boxes, confidences, class_labels)):
+            if confidence > self.conf:
+                # Get class name based on label index
+                class_name = self.class_names[label.item()]
+                if class_name in self.interest_classes:
+                    bboxes.append([class_name, *[int(val) for val in box], confidence])
+
+        return self.__apply_nms(bboxes)
+
+    def __apply_nms(self, detections: list):
+        """
+        Apply Non-Maximum Suppression (NMS) to remove redundant detections.
+
+        :param detections: List of detections [class, x1, y1, x2, y2, confidence].
+        :return: List of detections after NMS.
+        """
+        if len(detections) == 0:
+            return []
+
+        boxes = np.array([det[1:5] for det in detections])
+        confidences = np.array([det[5] for det in detections])
+        indexes = cv.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), self.conf, self.nms)
+        if len(indexes) == 0:
+            return []
+
+        return [detections[i] for i in indexes]
 
 class AdapterDetectionTask(Adapter):
     

@@ -1,4 +1,26 @@
 import yaml
+from pathlib import Path
+
+'''
+example of a yaml file
+
+- mode : image
+  images_path: ../data/imgs_MOV03478
+  groundtruth_path: ../layout/mov03478.csv
+  model_name: efficientdet_d0
+  adapter_name: AdapterDetectionTask
+  path_classes : ../configs/efficientdet_d0/classes_coco90.txt
+  path_weights : ../configs/efficientdet_d0/efficientdet_d0_frozen.pb
+  path_config : ../configs/efficientdet_d0/efficientdet_d0.pbtxt
+  write_path: data.csv
+  confidence: 0.3
+  nms_threshold: 0.4
+  scale: 0.00392156
+  size: 512 512
+  mean: 123.675 116.28 103.53
+  swapRB: 1
+  silent_mode: 0
+'''
 
 def parse_yaml_file(yaml_file):
     
@@ -20,21 +42,18 @@ def parse_yaml_file(yaml_file):
     if mode == 'video' and parameters.get('video_path') == None:
         raise ValueError('In video mode, the video_path parameter is required.') 
 
-    model_name = parameters.get('model_name')
-
-    if model_name == None:
-        raise ValueError('model_name is not specified. This parameter is required.')
-
-    list_models = ['YOLOv4', 'YOLOv3_tiny', 'rcnn_resnet50', 'rcnn_resnet_v2', 'efficientdet_d1', 'efficientdet_d0', 'lite_mobilenet_v2', 'MobileNet']
-    
-    if not (model_name in list_models):
-        raise ValueError('The model_name is specified incorrectly.\n List of acceptable models: \'YOLOv4\', \'YOLOv3_tiny\', \'rcnn_resnet50\', \'rcnn_resnet_v2\', \'efficientdet_d1\', \'efficientdet_d0\', \'lite_mobilenet_v2\', \'MobileNet\'') 
+    if parameters.get('model_name') == None:
+        parameters.update({'model_name' : None}) 
+       
+    list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
+    if not (parameters.get('adapter_name') in list_adapter):
+        raise ValueError('The adapter is specified incorrectly.\n List of acceptable models: \'AdapterYOLO\', \'AdapterYOLOTiny\', \'AdapterDetectionTask\', \'AdapterFasterRCNN\'')
 
     if parameters.get('path_classes') == None:
         raise ValueError('path_classes is not specified. This parameter is required.')
     
     if parameters.get('path_weights') == None:
-        raise ValueError('path_weights is not specified. This parameter is required.')
+        parameters.update({'path_weights' : None}) 
     
     if parameters.get('path_config') == None:
         parameters.update({'path_config' : None}) 
@@ -55,7 +74,7 @@ def parse_yaml_file(yaml_file):
         parameters['scale'] = float(parameters['scale'])
         
     if parameters.get('size') == None:
-        raise ValueError('size is not specified. This parameter is required.')
+        parameters.update({'size' : [0, 0]})
     else:
         parameters['size'] = list(map(int, parameters['size'].split(' ')))
     
@@ -74,6 +93,8 @@ def parse_yaml_file(yaml_file):
         
     if parameters.get('write_path') == None:
         parameters.update({'write_path' : None})
+    else:
+        parameters['write_path'] = Path(parameters['write_path']).absolute()
         
     if parameters.get('silent_mode') == None:
         parameters.update({'silent_mode' : False})
@@ -81,7 +102,7 @@ def parse_yaml_file(yaml_file):
         parameters['silent_mode'] = bool(parameters['silent_mode'])
     
     list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name', 'path_classes', 'path_weights', 'path_config', 'confidence',
-                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 'groundtruth_path', 'write_path', 'silent_mode']
+                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 'groundtruth_path', 'write_path', 'silent_mode', 'adapter_name']
 
     entered_arg = parameters.keys()
     
