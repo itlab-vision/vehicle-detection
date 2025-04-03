@@ -1,8 +1,14 @@
+"""
+parsing a yaml file
+"""
 from pathlib import Path
 import yaml
 
 def check_param_paths(parameters):
-
+    """
+    checking path parameters
+    :return: parameters
+    """
     if parameters.get('path_classes') is None:
         raise ValueError('path_classes is not specified. This parameter is required.')
 
@@ -15,7 +21,10 @@ def check_param_paths(parameters):
     return parameters
 
 def check_param_adapter(parameters):
-
+    """
+    checking adapter parameters
+    :return: parameters
+    """
     list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
     if parameters.get('adapter_name') not in list_adapter:
         raise ValueError('The adapter is specified incorrectly')
@@ -33,7 +42,10 @@ def check_param_adapter(parameters):
     return parameters
 
 def check_param_detector(parameters):
-
+    """
+    checking detector parameters
+    :return: parameters
+    """
     if parameters.get('scale') is None:
         parameters.update({'scale' : 1.0})
     else:
@@ -57,7 +69,10 @@ def check_param_detector(parameters):
     return parameters
 
 def parse_yaml_file(yaml_file):
-
+    """
+    checking detector parameters
+    :return: parameters
+    """
     with open(yaml_file, 'r', encoding = 'utf-8') as fh:
         parameters = yaml.safe_load(fh)
     parameters = parameters[0]

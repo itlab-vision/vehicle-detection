@@ -36,6 +36,16 @@ from src.detector_pipeline.detector_pipeline import PipelineComponents, Detectio
 from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 
 def cli_argument_parser():
+    """
+    Parse command-line arguments for the visualizer application.
+
+    Returns:
+        argparse.Namespace: Parsed arguments
+
+    Raises:
+        argparse.ArgumentError:
+            If required arguments are missing or invalid combinations are provided
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-y', '--yaml',
