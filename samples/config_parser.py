@@ -1,20 +1,24 @@
 import yaml
 from pathlib import Path
 
-def check_param_detector(parameters):
-       
-    list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
-    if not (parameters.get('adapter_name') in list_adapter):
-        raise ValueError('The adapter is specified incorrectly.\n List of acceptable models: \'AdapterYOLO\', \'AdapterYOLOTiny\', \'AdapterDetectionTask\', \'AdapterFasterRCNN\'')
+def check_param_paths(parameters):
 
     if parameters.get('path_classes') == None:
         raise ValueError('path_classes is not specified. This parameter is required.')
-    
+
     if parameters.get('path_weights') == None:
         parameters.update({'path_weights' : None})
     
     if parameters.get('path_config') == None:
         parameters.update({'path_config' : None})
+        
+    return parameters
+
+def check_param_adapter(parameters):
+    
+    list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
+    if not (parameters.get('adapter_name') in list_adapter):
+        raise ValueError('The adapter is specified incorrectly.\n List of acceptable models: \'AdapterYOLO\', \'AdapterYOLOTiny\', \'AdapterDetectionTask\', \'AdapterFasterRCNN\'')
     
     if parameters.get('confidence') == None:
         parameters.update({'confidence' : 0.3})
@@ -26,6 +30,10 @@ def check_param_detector(parameters):
     else:
         parameters['nms_threshold'] = float(parameters['nms_threshold'])
         
+    return parameters
+
+def check_param_detector(parameters):
+
     if parameters.get('scale') == None:
         parameters.update({'scale' : 1.0})
     else:
@@ -45,9 +53,6 @@ def check_param_detector(parameters):
         parameters.update({'swapRB' : False})
     else:
         parameters['swapRB'] = bool(parameters['swapRB'])
-    
-    if parameters.get('groundtruth_path') == None:
-        parameters.update({'groundtruth_path' : None})
         
     return parameters
 
@@ -75,11 +80,16 @@ def parse_yaml_file(yaml_file):
         parameters.update({'model_name' : None})
 
     parameters = check_param_detector(parameters)
+    parameters = check_param_paths(parameters)
+    parameters = check_param_adapter(parameters)
         
     if parameters.get('write_path') == None:
         parameters.update({'write_path' : None})
     else:
         parameters['write_path'] = Path(parameters['write_path']).absolute()
+        
+    if parameters.get('groundtruth_path') == None:
+        parameters.update({'groundtruth_path' : None})
         
     if parameters.get('silent_mode') == None:
         parameters.update({'silent_mode' : False})

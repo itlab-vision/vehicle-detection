@@ -57,7 +57,7 @@ class Detector(ABC):
         """
     
     @staticmethod
-    def create(adapter_name, path_classes, path_weights, path_config, conf, nms, param_detect):
+    def create(adapter_name, path_classes, paths, param_adapter, param_detect):
         """
         Factory method for creating detector instances.
         
@@ -72,28 +72,28 @@ class Detector(ABC):
             raise ValueError('Incorrect path to image.')
                 
         if adapter_name == 'AdapterYOLO':
-            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, param_detect, ad.AdapterYOLO(conf, nms, class_names))
+            return VehicleDetectorOpenCV('Darknet', paths, param_detect, ad.AdapterYOLO(param_adapter[0], param_adapter[1], class_names))
         elif adapter_name == 'AdapterYOLOTiny':
-            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, param_detect, ad.AdapterYOLOTiny(conf, nms, class_names))
+            return VehicleDetectorOpenCV('ONNX', paths, param_detect, ad.AdapterYOLOTiny(param_adapter[0], param_adapter[1], class_names))
         elif adapter_name == 'AdapterDetectionTask':
-            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, param_detect, ad.AdapterDetectionTask(conf, nms, class_names))
+            return VehicleDetectorOpenCV('TensorFlow', paths, param_detect, ad.AdapterDetectionTask(param_adapter[0], param_adapter[1], class_names))
         elif adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(param_detect, ad.AdapterFasterRCNN(conf, nms, class_names))
+            return VehicleDetectorFasterRCNN(param_detect, ad.AdapterFasterRCNN(param_adapter[0], param_adapter[1], class_names))
         elif adapter_name == "fake":
             return FakeDetector()
         else:
             raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 class VehicleDetectorOpenCV(Detector):
-    def __init__(self, format_load, path_weights, path_config, param_detect, adapter):
+    def __init__(self, format_load, paths, param_detect, adapter):
          
         super().__init__(param_detect, adapter)
         if format_load == 'TensorFlow':
-            self.model = cv.dnn.readNetFromTensorflow(path_weights, path_config)
+            self.model = cv.dnn.readNetFromTensorflow(paths[0], paths[1])
         elif format_load == 'Darknet':
-            self.model = cv.dnn.readNetFromDarknet(path_config, path_weights)
+            self.model = cv.dnn.readNetFromDarknet(paths[1], paths[0])
         elif format_load == 'ONNX':
-            self.model = cv.dnn.readNetFromONNX(path_weights)
+            self.model = cv.dnn.readNetFromONNX(paths[0])
         else:
             raise ValueError('Incorrect format load.')
 
