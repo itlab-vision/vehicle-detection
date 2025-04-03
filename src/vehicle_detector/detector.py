@@ -39,14 +39,14 @@ class Detector(ABC):
         'vehicle': Production detector
         'fake': Testing detector with random boxes
     """
-    
+
     def __init__(self, param_detect, adapter):
         self.scale = param_detect[0]
         self.size = param_detect[1]
         self.mean = param_detect[2]
-        self.swapRB = param_detect[3]
+        self.swap_rb = param_detect[3]
         self.adapter = adapter
-        
+
     @abstractmethod
     def detect(self, image: np.ndarray):
         """
@@ -55,7 +55,7 @@ class Detector(ABC):
         :param image: Input image array (OpenCV format)
         :return list: Detection tuples (label, x1, y1, x2, y2)
         """
-    
+
     @staticmethod
     def create(adapter_name, path_classes, paths, param_adapter, param_detect):
         """
@@ -70,7 +70,7 @@ class Detector(ABC):
                 class_names = f.read().split('\n')
         else:
             raise ValueError('Incorrect path to image.')
-                
+
         if adapter_name == 'AdapterYOLO':
             return VehicleDetectorOpenCV('Darknet', paths, param_detect,
                                          ad.AdapterYOLO(param_adapter[0],
@@ -93,7 +93,7 @@ class Detector(ABC):
 
 class VehicleDetectorOpenCV(Detector):
     def __init__(self, format_load, paths, param_detect, adapter):
-         
+
         super().__init__(param_detect, adapter)
         if format_load == 'TensorFlow':
             self.model = cv.dnn.readNetFromTensorflow(paths[0], paths[1])
@@ -105,13 +105,14 @@ class VehicleDetectorOpenCV(Detector):
             raise ValueError('Incorrect format load.')
 
     def detect(self, image):
-        
+
         image_height, image_width, _ = image.shape
-        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size, mean=self.mean, swapRB = self.swapRB)
-         
+        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size,
+                                    mean=self.mean, swap_rb = self.swap_rb)
+
         self.model.setInput(blob)
         boxes = self.model.forward()
-        
+
         return self.adapter.post_processing(boxes, image_width, image_height)
 
 class VehicleDetectorFasterRCNN(Detector):
@@ -128,7 +129,8 @@ class VehicleDetectorFasterRCNN(Detector):
         :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
         """
         super().__init__(param_detect, adapter)
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+            weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
         self.model.eval()# Set the model to evaluation mode
 
     def detect(self, image: np.ndarray):
@@ -149,7 +151,7 @@ class VehicleDetectorFasterRCNN(Detector):
         # Post-process the detections using the adapter
         image_height, image_width, _ = image.shape
         return self.adapter.post_processing(outputs, image_width, image_height)
-     
+
 class FakeDetector(Detector):
     """
     Testing detector generating random bounding boxes.
@@ -194,4 +196,3 @@ class FakeDetector(Detector):
             confidence = random.random()
             bboxes.append((cl, x1, y1, x2, y2, confidence))
         return bboxes
-    

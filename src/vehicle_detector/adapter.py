@@ -10,7 +10,7 @@ class Adapter(ABC):
         self.nms = nms
         self.class_names = class_names
         self.interest_classes = interest_classes
-   
+
     @abstractmethod
     def post_processing(self, output, image_width, image_height):
         pass
@@ -21,7 +21,7 @@ class Adapter(ABC):
         for i in indexes:
             bboxes.append((classes_id[i], int(boxes[i][0]), int(boxes[i][1]),
                            int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
-            
+
         return bboxes
   
 class AdapterFasterRCNN(Adapter):
@@ -81,24 +81,23 @@ class AdapterDetectionTask(Adapter):
             box = output[0, 0, i]
             confidence = box[2]
             if confidence > self.conf:
-                
+
                 left = min(int(box[3] * image_width), image_width)
                 top = min(int(box[4] * image_height), image_height)
                 right = min(int(box[5] * image_width), image_width)
                 bottom = min(int(box[6] * image_height), image_height)
-                
+
                 class_name = self.class_names[int(box[1])]
-                
+
                 if class_name in self.interest_classes:
                     boxes.append((left, top, right, bottom))
                     classes_id.append(class_name)
                     confidences.append(confidence)
-                    
+
         return self._nms(boxes, confidences, classes_id)
 
-
 class AdapterYOLO(Adapter):
-    
+
     def post_processing(self, output, image_width, image_height):
         classes_id = []
         boxes = []
@@ -120,7 +119,7 @@ class AdapterYOLO(Adapter):
                                   cx1 + w // 2, cy1 + h // 2))
                     classes_id.append(class_name)
                     confidences.append(confidence)
-                    
+
         return self._nms(boxes, confidences, classes_id)
 
 class AdapterYOLOTiny(Adapter):
@@ -144,28 +143,28 @@ class AdapterYOLOTiny(Adapter):
         outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
         return outputs
 
-    def post_processing(self, output, im_width, im_height):
-        
+    def post_processing(self, output, image_width, image_height):
+
         predictions = self.__demo_postprocess(output[0], (416, 416))
         boxes = predictions[:, :4]
         scores = predictions[:, 4:5] * predictions[:, 5:]
-        boxes_xyxy = np.ones_like(boxes)
-        
-        boxes_xyxy[:, 0] = boxes[:, 0] / (416 / im_width) - boxes[:, 2]/2. / (416 / im_width)
-        boxes_xyxy[:, 1] = boxes[:, 1] / (416 / im_height) - boxes[:, 3]/2. / (416 / im_height)
-        boxes_xyxy[:, 2] = boxes[:, 0] / (416 / im_width) + boxes[:, 2]/2. / (416 / im_width)
-        boxes_xyxy[:, 3] = boxes[:, 1] / (416 / im_height) + boxes[:, 3]/2. / (416 / im_height)
-        
+        b_xyxy = np.ones_like(boxes)
+
+        b_xyxy[:, 0] = boxes[:, 0] / (416 / image_width) - boxes[:, 2]/2. / (416 / image_width)
+        b_xyxy[:, 1] = boxes[:, 1] / (416 / image_height) - boxes[:, 3]/2. / (416 / image_height)
+        b_xyxy[:, 2] = boxes[:, 0] / (416 / image_width) + boxes[:, 2]/2. / (416 / image_width)
+        b_xyxy[:, 3] = boxes[:, 1] / (416 / image_height) + boxes[:, 3]/2. / (416 / image_height)
+
         all_classes_id = scores.argmax(1)
         all_confidences = scores[np.arange(len(all_classes_id)), all_classes_id]
-        
+
         classes_id = []
         boxes = []
         confidences = []
         for i, class_id in zip(range(len(all_classes_id)), all_classes_id):
             if self.class_names[class_id] in self.interest_classes:
                 classes_id.append(self.class_names[class_id])
-                boxes.append(boxes_xyxy[i])
+                boxes.append(b_xyxy[i])
                 confidences.append(all_confidences[i])
-        
+
         return self._nms(boxes, confidences, classes_id)
