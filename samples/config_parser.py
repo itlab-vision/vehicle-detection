@@ -1,27 +1,6 @@
 import yaml
 from pathlib import Path
 
-"""
-example of a yaml file
-
-- mode : image
-  images_path: ../data/imgs_MOV03478
-  groundtruth_path: ../layout/mov03478.csv
-  model_name: efficientdet_d0
-  adapter_name: AdapterDetectionTask
-  path_classes : ../configs/efficientdet_d0/classes_coco90.txt
-  path_weights : ../configs/efficientdet_d0/efficientdet_d0_frozen.pb
-  path_config : ../configs/efficientdet_d0/efficientdet_d0.pbtxt
-  write_path: data.csv
-  confidence: 0.3
-  nms_threshold: 0.4
-  scale: 0.00392156
-  size: 512 512
-  mean: 123.675 116.28 103.53
-  swapRB: 1
-  silent_mode: 0
-"""
-
 def parse_yaml_file(yaml_file):
     
     with open(yaml_file, 'r', encoding = 'utf-8') as fh:

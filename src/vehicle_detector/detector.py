@@ -48,13 +48,13 @@ class Detector(ABC):
         self.adapter = adapter
         
     @abstractmethod
-    def detect(self, image):
+    def detect(self, image: np.ndarray):
         """
         Process image and return detected objects.
-        
+
         :param image: Input image array (OpenCV format)
-        :return: list: Detection tuples (label, x1, y1, x2, y2)
-        """   
+        :return list: Detection tuples (label, x1, y1, x2, y2)
+        """
     
     @staticmethod
     def create(adapter_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
