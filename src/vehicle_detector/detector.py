@@ -111,7 +111,7 @@ class VehicleDetectorOpenCV(Detector):
 
         image_height, image_width, _ = image.shape
         blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size,
-                                    mean=self.mean, swap_rb = self.swap_rb)
+                                    mean=self.mean, swapRB = self.swap_rb)
 
         self.model.setInput(blob)
         boxes = self.model.forward()

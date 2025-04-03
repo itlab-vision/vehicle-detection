@@ -43,7 +43,7 @@ class Adapter(ABC):
         self.interest_classes = interest_classes
 
     @abstractmethod
-    def post_processing(self, output, image_width, image_height):
+    def post_processing(self, output: list, image_width: int, image_height: int):
         """
         Transforms output into a readable format.
 
