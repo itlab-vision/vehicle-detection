@@ -40,11 +40,11 @@ class Detector(ABC):
         'fake': Testing detector with random boxes
     """
     
-    def __init__(self, scale, size, mean, swapRB, adapter):
-        self.scale = scale
-        self.size = size
-        self.mean = mean
-        self.swapRB = swapRB
+    def __init__(self, param_detect, adapter):
+        self.scale = param_detect[0]
+        self.size = param_detect[1]
+        self.mean = param_detect[2]
+        self.swapRB = param_detect[3]
         self.adapter = adapter
         
     @abstractmethod
@@ -57,7 +57,7 @@ class Detector(ABC):
         """
     
     @staticmethod
-    def create(adapter_name, path_classes, path_weights, path_config, conf, nms, scale, size, mean, swapRB):
+    def create(adapter_name, path_classes, path_weights, path_config, conf, nms, param_detect):
         """
         Factory method for creating detector instances.
         
@@ -72,22 +72,22 @@ class Detector(ABC):
             raise ValueError('Incorrect path to image.')
                 
         if adapter_name == 'AdapterYOLO':
-            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterYOLO(conf, nms, class_names))
+            return VehicleDetectorOpenCV('Darknet', path_weights, path_config, param_detect, ad.AdapterYOLO(conf, nms, class_names))
         elif adapter_name == 'AdapterYOLOTiny':
-            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterYOLOTiny(conf, nms, class_names))
+            return VehicleDetectorOpenCV('ONNX', path_weights, path_config, param_detect, ad.AdapterYOLOTiny(conf, nms, class_names))
         elif adapter_name == 'AdapterDetectionTask':
-            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, scale, size, mean, swapRB, ad.AdapterDetectionTask(conf, nms, class_names))
+            return VehicleDetectorOpenCV('TensorFlow', path_weights, path_config, param_detect, ad.AdapterDetectionTask(conf, nms, class_names))
         elif adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(scale, size, mean, swapRB, ad.AdapterFasterRCNN(conf, nms, class_names))
+            return VehicleDetectorFasterRCNN(param_detect, ad.AdapterFasterRCNN(conf, nms, class_names))
         elif adapter_name == "fake":
             return FakeDetector()
         else:
             raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 class VehicleDetectorOpenCV(Detector):
-    def __init__(self, format_load, path_weights, path_config, scale, size, mean, swapRB, adapter):
+    def __init__(self, format_load, path_weights, path_config, param_detect, adapter):
          
-        super().__init__(scale, size, mean, swapRB, adapter)
+        super().__init__(param_detect, adapter)
         if format_load == 'TensorFlow':
             self.model = cv.dnn.readNetFromTensorflow(path_weights, path_config)
         elif format_load == 'Darknet':
@@ -112,7 +112,7 @@ class VehicleDetectorFasterRCNN(Detector):
     Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
     """
 
-    def __init__(self, scale, size, mean, swapRB, adapter):
+    def __init__(self, param_detect, adapter):
         """
         Initializes the Faster R-CNN vehicle detector.
 
@@ -120,7 +120,7 @@ class VehicleDetectorFasterRCNN(Detector):
         :param conf_threshold: Confidence threshold for detections.
         :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
         """
-        super().__init__(scale, size, mean, swapRB, adapter)
+        super().__init__(param_detect, adapter)
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
         self.model.eval()  # Set the model to evaluation mode
 
@@ -159,7 +159,7 @@ class FakeDetector(Detector):
         """
         if seed is not None:
             random.seed(seed)
-        super().__init__(None, None, None, None, None)
+        super().__init__(None, None)
 
     def detect(self, image: np.ndarray):
         """

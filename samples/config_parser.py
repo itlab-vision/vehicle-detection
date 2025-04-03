@@ -1,28 +1,7 @@
 import yaml
 from pathlib import Path
 
-def parse_yaml_file(yaml_file):
-    
-    with open(yaml_file, 'r', encoding = 'utf-8') as fh:
-        parameters = yaml.safe_load(fh)
-    parameters = parameters[0]
-    
-    mode = parameters.get('mode')
-
-    if mode == None:
-        raise ValueError('mode is not specified. This parameter is required.')
-    
-    if mode != 'image' and mode != 'video':
-        raise ValueError('The mode is specified incorrectly.') 
-    
-    if mode == 'image' and parameters.get('images_path') == None:
-        raise ValueError('In image mode, the images_path parameter is required.') 
-    
-    if mode == 'video' and parameters.get('video_path') == None:
-        raise ValueError('In video mode, the video_path parameter is required.') 
-
-    if parameters.get('model_name') == None:
-        parameters.update({'model_name' : None}) 
+def check_param_detector(parameters):
        
     list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
     if not (parameters.get('adapter_name') in list_adapter):
@@ -32,10 +11,10 @@ def parse_yaml_file(yaml_file):
         raise ValueError('path_classes is not specified. This parameter is required.')
     
     if parameters.get('path_weights') == None:
-        parameters.update({'path_weights' : None}) 
+        parameters.update({'path_weights' : None})
     
     if parameters.get('path_config') == None:
-        parameters.update({'path_config' : None}) 
+        parameters.update({'path_config' : None})
     
     if parameters.get('confidence') == None:
         parameters.update({'confidence' : 0.3})
@@ -69,6 +48,33 @@ def parse_yaml_file(yaml_file):
     
     if parameters.get('groundtruth_path') == None:
         parameters.update({'groundtruth_path' : None})
+        
+    return parameters
+
+def parse_yaml_file(yaml_file):
+    
+    with open(yaml_file, 'r', encoding = 'utf-8') as fh:
+        parameters = yaml.safe_load(fh)
+    parameters = parameters[0]
+    
+    mode = parameters.get('mode')
+
+    if mode == None:
+        raise ValueError('mode is not specified. This parameter is required.')
+    
+    if mode not in ('image', 'video'):
+        raise ValueError('The mode is specified incorrectly.') 
+    
+    if mode == 'image' and parameters.get('images_path') == None:
+        raise ValueError('In image mode, the images_path parameter is required.') 
+    
+    if mode == 'video' and parameters.get('video_path') == None:
+        raise ValueError('In video mode, the video_path parameter is required.') 
+
+    if parameters.get('model_name') == None:
+        parameters.update({'model_name' : None})
+
+    parameters = check_param_detector(parameters)
         
     if parameters.get('write_path') == None:
         parameters.update({'write_path' : None})

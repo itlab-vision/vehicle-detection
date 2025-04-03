@@ -76,19 +76,17 @@ class AdapterDetectionTask(Adapter):
         classes_id = []
         confidences = []
         boxes = []
-        numDetections = output.shape[2]
-        for i in range(numDetections):
+        for i in range(output.shape[2]):
             box = output[0, 0, i]
             confidence = box[2]
             if confidence > self.conf:
-                class_id = int(box[1])
-               
+                
                 left = min(int(box[3] * image_width), image_width)
                 top = min(int(box[4] * image_height), image_height)
                 right = min(int(box[5] * image_width), image_width)
                 bottom = min(int(box[6] * image_height), image_height)
                 
-                class_name = self.class_names[int(class_id)]
+                class_name = self.class_names[int(box[1])]
                 
                 if class_name in self.interest_classes:
                     boxes.append((left, top, right, bottom))
@@ -107,9 +105,8 @@ class AdapterYOLO(Adapter):
         for detection in output:
 
             scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            class_name = self.class_names[class_id]
+            confidence = scores[np.argmax(scores)]
+            class_name = self.class_names[np.argmax(scores)]
             if confidence > self.conf:
 
                 cx1 = int(detection[0] * image_width)
@@ -134,8 +131,7 @@ class AdapterYOLOTiny(Adapter):
         wsizes = [img_size[1] // stride for stride in strides]
 
         for hsize, wsize, stride in zip(hsizes, wsizes, strides):
-            xv, yv = np.meshgrid(np.arange(wsize), np.arange(hsize))
-            grid = np.stack((xv, yv), 2).reshape(1, -1, 2)
+            grid = np.stack((np.meshgrid(np.arange(wsize), np.arange(hsize))), 2).reshape(1, -1, 2)
             grids.append(grid)
             shape = grid.shape[:2]
             expanded_strides.append(np.full((*shape, 1), stride))
@@ -149,16 +145,14 @@ class AdapterYOLOTiny(Adapter):
     def postProcessing(self, output, image_width, image_height):
         
         predictions = self.__demo_postprocess(output[0], (416, 416))
-        rh = 416 / image_height
-        rw = 416 / image_width
         boxes = predictions[:, :4]
         scores = predictions[:, 4:5] * predictions[:, 5:]
         boxes_xyxy = np.ones_like(boxes)
         
-        boxes_xyxy[:, 0] = boxes[:, 0] / rw - boxes[:, 2]/2. / rw
-        boxes_xyxy[:, 1] = boxes[:, 1] / rh - boxes[:, 3]/2. / rh
-        boxes_xyxy[:, 2] = boxes[:, 0] / rw + boxes[:, 2]/2. / rw
-        boxes_xyxy[:, 3] = boxes[:, 1] / rh + boxes[:, 3]/2. / rh
+        boxes_xyxy[:, 0] = boxes[:, 0] / (416 / image_width) - boxes[:, 2]/2. / (416 / image_width)
+        boxes_xyxy[:, 1] = boxes[:, 1] / (416 / image_height) - boxes[:, 3]/2. / (416 / image_height)
+        boxes_xyxy[:, 2] = boxes[:, 0] / (416 / image_width) + boxes[:, 2]/2. / (416 / image_width)
+        boxes_xyxy[:, 3] = boxes[:, 1] / (416 / image_height) + boxes[:, 3]/2. / (416 / image_height)
         
         all_classes_id = scores.argmax(1)
         all_confidences = scores[np.arange(len(all_classes_id)), all_classes_id]
