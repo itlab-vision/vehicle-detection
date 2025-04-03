@@ -25,7 +25,7 @@ import torch
 import torchvision
 import adapter as ad
 
-class Detector(ABC):   
+class Detector(ABC):
     """
     Abstract base class for object detection implementations.
     
@@ -84,7 +84,7 @@ class Detector(ABC):
                                          ad.AdapterDetectionTask(param_adapter[0],
                                          param_adapter[1], class_names))
         if adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(param_detect, 
+            return VehicleDetectorFasterRCNN(param_detect,
                                              ad.AdapterFasterRCNN(param_adapter[0],
                                              param_adapter[1], class_names))
         if adapter_name == "fake":

@@ -23,7 +23,7 @@ class Adapter(ABC):
                            int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
 
         return bboxes
-  
+
 class AdapterFasterRCNN(Adapter):
     """
     Adapter for processing Faster R-CNN model output.
