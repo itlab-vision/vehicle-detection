@@ -159,7 +159,6 @@ class FakeDetector(Detector):
         """
         :param seed: Random seed for reproducibility
         """
-        super().__init__(0, 0, 0, 0, 0, 0)
         if seed is not None:
             random.seed(seed)
 
