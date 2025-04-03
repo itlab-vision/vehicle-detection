@@ -17,7 +17,7 @@ def check_param_paths(parameters):
 def check_param_adapter(parameters):
 
     list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
-    if not (parameters.get('adapter_name') in list_adapter):
+    if parameters.get('adapter_name') not in list_adapter:
         raise ValueError('The adapter is specified incorrectly')
 
     if parameters.get('confidence') is None:
@@ -96,7 +96,7 @@ def parse_yaml_file(yaml_file):
     else:
         parameters['silent_mode'] = bool(parameters['silent_mode'])
 
-    list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name', 
+    list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name',
                 'path_classes', 'path_weights', 'path_config', 'confidence',
                   'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 
                   'groundtruth_path', 'write_path', 'silent_mode', 'adapter_name']
@@ -104,7 +104,7 @@ def parse_yaml_file(yaml_file):
     entered_arg = parameters.keys()
 
     for arg in entered_arg:
-        if not (arg in list_arg):
+        if arg not in list_arg:
             raise ValueError(f'Incorrect parameter entered: {arg}')
 
     return parameters

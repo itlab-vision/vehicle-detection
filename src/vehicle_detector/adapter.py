@@ -1,34 +1,35 @@
+from abc import ABC, abstractmethod
 import numpy as np
 import cv2 as cv
-from abc import ABC, abstractmethod
 
 class Adapter(ABC):
     def __init__(self, conf, nms, class_names, interest_classes = None):
-        if interest_classes == None:
+        if interest_classes is None:
             interest_classes = ['car', 'bus', 'truck']
         self.conf = conf
         self.nms = nms
         self.class_names = class_names
         self.interest_classes = interest_classes
-        
+   
     @abstractmethod
-    def postProcessing(self, output, image_width, image_height):
+    def post_processing(self, output, image_width, image_height):
         pass
-    
+
     def _nms(self, boxes, confidences, classes_id):
         indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
         bboxes = []
         for i in indexes:
-            bboxes.append((classes_id[i], int(boxes[i][0]), int(boxes[i][1]), int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
+            bboxes.append((classes_id[i], int(boxes[i][0]), int(boxes[i][1]),
+                           int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
             
         return bboxes
-        
+  
 class AdapterFasterRCNN(Adapter):
     """
     Adapter for processing Faster R-CNN model output.
     """
 
-    def postProcessing(self, output: list, image_width: int, image_height: int):
+    def post_processing(self, output: list, image_width: int, image_height: int):
         """
         Transforms Faster R-CNN output into a readable format.
 
@@ -72,7 +73,7 @@ class AdapterFasterRCNN(Adapter):
 
 class AdapterDetectionTask(Adapter):
 
-    def postProcessing(self, output, image_width, image_height):
+    def post_processing(self, output, image_width, image_height):
         classes_id = []
         confidences = []
         boxes = []
@@ -98,7 +99,7 @@ class AdapterDetectionTask(Adapter):
 
 class AdapterYOLO(Adapter):
     
-    def postProcessing(self, output, image_width, image_height):
+    def post_processing(self, output, image_width, image_height):
         classes_id = []
         boxes = []
         confidences = []
@@ -112,14 +113,15 @@ class AdapterYOLO(Adapter):
                 cx1 = int(detection[0] * image_width)
                 cy1 = int(detection[1] * image_height)
                 w = int(detection[2] * image_width)
-                h = int(detection[3] * image_height)          
+                h = int(detection[3] * image_height)
 
                 if class_name in self.interest_classes:
-                    boxes.append((cx1 - w // 2, cy1 - h // 2, cx1 + w // 2, cy1 + h // 2))
+                    boxes.append((cx1 - w // 2, cy1 - h // 2,
+                                  cx1 + w // 2, cy1 + h // 2))
                     classes_id.append(class_name)
                     confidences.append(confidence)
                     
-        return self._nms(boxes, confidences, classes_id)  
+        return self._nms(boxes, confidences, classes_id)
 
 class AdapterYOLOTiny(Adapter):
 
@@ -142,17 +144,17 @@ class AdapterYOLOTiny(Adapter):
         outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
         return outputs
 
-    def postProcessing(self, output, image_width, image_height):
+    def post_processing(self, output, im_width, im_height):
         
         predictions = self.__demo_postprocess(output[0], (416, 416))
         boxes = predictions[:, :4]
         scores = predictions[:, 4:5] * predictions[:, 5:]
         boxes_xyxy = np.ones_like(boxes)
         
-        boxes_xyxy[:, 0] = boxes[:, 0] / (416 / image_width) - boxes[:, 2]/2. / (416 / image_width)
-        boxes_xyxy[:, 1] = boxes[:, 1] / (416 / image_height) - boxes[:, 3]/2. / (416 / image_height)
-        boxes_xyxy[:, 2] = boxes[:, 0] / (416 / image_width) + boxes[:, 2]/2. / (416 / image_width)
-        boxes_xyxy[:, 3] = boxes[:, 1] / (416 / image_height) + boxes[:, 3]/2. / (416 / image_height)
+        boxes_xyxy[:, 0] = boxes[:, 0] / (416 / im_width) - boxes[:, 2]/2. / (416 / im_width)
+        boxes_xyxy[:, 1] = boxes[:, 1] / (416 / im_height) - boxes[:, 3]/2. / (416 / im_height)
+        boxes_xyxy[:, 2] = boxes[:, 0] / (416 / im_width) + boxes[:, 2]/2. / (416 / im_width)
+        boxes_xyxy[:, 3] = boxes[:, 1] / (416 / im_height) + boxes[:, 3]/2. / (416 / im_height)
         
         all_classes_id = scores.argmax(1)
         all_confidences = scores[np.arange(len(all_classes_id)), all_classes_id]

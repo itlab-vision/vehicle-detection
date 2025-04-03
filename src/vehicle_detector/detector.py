@@ -17,12 +17,12 @@ Dependencies:
 """
 
 from pathlib import Path
+from abc import ABC, abstractmethod
+import random
 import cv2 as cv
 import numpy as np
 import torch
 import torchvision
-import random
-from abc import ABC, abstractmethod
 import adapter as ad
 
 class Detector(ABC):   
@@ -72,13 +72,21 @@ class Detector(ABC):
             raise ValueError('Incorrect path to image.')
                 
         if adapter_name == 'AdapterYOLO':
-            return VehicleDetectorOpenCV('Darknet', paths, param_detect, ad.AdapterYOLO(param_adapter[0], param_adapter[1], class_names))
+            return VehicleDetectorOpenCV('Darknet', paths, param_detect,
+                                         ad.AdapterYOLO(param_adapter[0],
+                                         param_adapter[1], class_names))
         if adapter_name == 'AdapterYOLOTiny':
-            return VehicleDetectorOpenCV('ONNX', paths, param_detect, ad.AdapterYOLOTiny(param_adapter[0], param_adapter[1], class_names))
+            return VehicleDetectorOpenCV('ONNX', paths, param_detect,
+                                         ad.AdapterYOLOTiny(param_adapter[0],
+                                         param_adapter[1], class_names))
         if adapter_name == 'AdapterDetectionTask':
-            return VehicleDetectorOpenCV('TensorFlow', paths, param_detect, ad.AdapterDetectionTask(param_adapter[0], param_adapter[1], class_names))
+            return VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
+                                         ad.AdapterDetectionTask(param_adapter[0],
+                                         param_adapter[1], class_names))
         if adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(param_detect, ad.AdapterFasterRCNN(param_adapter[0], param_adapter[1], class_names))
+            return VehicleDetectorFasterRCNN(param_detect, 
+                                             ad.AdapterFasterRCNN(param_adapter[0],
+                                             param_adapter[1], class_names))
         if adapter_name == "fake":
             return FakeDetector()
         raise ValueError(f"Unsupported adapter: {adapter_name}")
@@ -104,7 +112,7 @@ class VehicleDetectorOpenCV(Detector):
         self.model.setInput(blob)
         boxes = self.model.forward()
         
-        return self.adapter.postProcessing(boxes, image_width, image_height)
+        return self.adapter.post_processing(boxes, image_width, image_height)
 
 class VehicleDetectorFasterRCNN(Detector):
     """
@@ -121,7 +129,7 @@ class VehicleDetectorFasterRCNN(Detector):
         """
         super().__init__(param_detect, adapter)
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
-        self.model.eval()  # Set the model to evaluation mode
+        self.model.eval()# Set the model to evaluation mode
 
     def detect(self, image: np.ndarray):
         """
@@ -140,7 +148,7 @@ class VehicleDetectorFasterRCNN(Detector):
 
         # Post-process the detections using the adapter
         image_height, image_width, _ = image.shape
-        return self.adapter.postProcessing(outputs, image_width, image_height)
+        return self.adapter.post_processing(outputs, image_width, image_height)
      
 class FakeDetector(Detector):
     """
@@ -186,3 +194,4 @@ class FakeDetector(Detector):
             confidence = random.random()
             bboxes.append((cl, x1, y1, x2, y2, confidence))
         return bboxes
+    
