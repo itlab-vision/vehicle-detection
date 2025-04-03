@@ -44,7 +44,14 @@ class Adapter(ABC):
 
     @abstractmethod
     def post_processing(self, output, image_width, image_height):
-        pass
+        """
+        Transforms output into a readable format.
+
+        :param output: Model output tensor (detections).
+        :param image_width: Original image width.
+        :param image_height: Original image height.
+        :return: List of detections [class, x1, y1, x2, y2, confidence].
+        """
 
     def _nms(self, boxes, confidences, classes_id):
         indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
