@@ -1,0 +1,18 @@
+- mode: 		#'image' or 'video' mode.
+  images_path: 		#The path to the folder with images, if the image mode is.
+  video_path: 		#The path to the folder with the video, if the video mode is.
+  groundtruth_path: 	#The path to the markup file in csv format, if available.
+  model_name: 		#The name of the model that you will use
+  adapter_name: 	#Adapter name for the model
+  path_classes: 	#The path to the file with the names of the classes on which the model is trained
+  path_weights: 	#The path to the model's weights file
+  path_config: 		#The path to the model architecture file
+  write_path: 		#The path to the file where the detections will be recorded
+  batch_size:		#The size of the image bundle
+  confidence: 		#Desired detection accuracy
+  nms_threshold: 	#Desired overlap area in the segment [0, 1]
+  scale: 		#Scale in the segment [0, 1]
+  size: 		#The size of the input image for the model
+  mean: 		#The average value of colors for each channel, three values in the segment [0, 255]
+  swapRB: 		#Swap red and blue. The value is 0 or 1
+  silent_mode: 		#Graphical output or console-only. The value is 1 or 0
