@@ -58,11 +58,11 @@ class FrameDataReader(ABC):
         :raise StopIteration: When no more frames available
         """
     @abstractmethod
-    def get_total_images(self):
+    def get_total_batches(self):
         """
-        Get number of images
+        Get number of batches
 
-        :return int: total images
+        :return int: total batches
         """
     @staticmethod
     def create(mode: str, dir_path: str, batch_size: int):
@@ -100,9 +100,9 @@ class VideoDataReader(FrameDataReader):
         self.video_path = video_path
         self._cap = None
 
-    def get_total_images(self):
+    def get_total_batches(self):
         """
-        :return int: number of images
+        :return int: number of batches
         """
         return int(self._cap.get(cv.CAP_PROP_FRAME_COUNT))
 
@@ -209,12 +209,6 @@ class ImgDataReader(FrameDataReader):
 
         if batch:
             self.batches.append(batch)
-
-    def get_total_images(self):
-        """
-        :return int: number of images
-        """
-        return len(self.image_paths)
 
     def get_total_batches(self):
         """
