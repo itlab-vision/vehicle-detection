@@ -73,8 +73,7 @@ def cli_argument_parser():
     parser.add_argument('-g', '--groundtruth',
                         help='Path to a file of groundtruth',
                         type=str,
-                        dest='groundtruth_path',
-                        required=False)
+                        dest='groundtruth_path')
     parser.add_argument('-m', '--model',
                         help='Path to a model',
                         type=str,
@@ -85,12 +84,16 @@ def cli_argument_parser():
                         help='Full path to the file to write.',
                         type=str,
                         dest='write_path',
-                        required=False,
                         default=None)
     parser.add_argument('-s', '--silent',
                         help='Set silent mode of program',
                         action='store_true',
                         dest='silent_mode')
+    parser.add_argument('-b', '--batches',
+                        help='Set size of image batch',
+                        type=int,
+                        dest='batch_size',
+                        default=None)
 
     args = parser.parse_args()
     return args
@@ -105,7 +108,7 @@ def config_main(args: argparse.Namespace):
     :return PipelineComponents: Configured pipeline objects with GUI visualizer
     """
     return PipelineComponents(
-            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path)),
+            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path), args.batch_size),
             detector = Detector.create( "fake" ),
             visualizer = BaseVisualizer.create(args.silent_mode),
             writer = Writer.create(args.write_path) if args.write_path else None,
