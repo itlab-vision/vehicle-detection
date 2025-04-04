@@ -65,11 +65,11 @@ def cli_argument_parser():
     parser.add_argument('-v', '--video',
                         help='Path to a video file',
                         type=str,
-                        dest='video_path')
+                        dest='path')
     parser.add_argument('-i', '--image',
                         help='Path to images',
                         type=str,
-                        dest='images_path')
+                        dest='path')
     parser.add_argument('-g', '--groundtruth',
                         help='Path to a file of groundtruth',
                         type=str,
@@ -108,7 +108,7 @@ def config_main(args: argparse.Namespace):
     :return PipelineComponents: Configured pipeline objects with GUI visualizer
     """
     return PipelineComponents(
-            reader = FrameDataReader.create(args.mode, (args.video_path or args.images_path), args.batch_size),
+            reader = FrameDataReader.create(args.mode, args.path, args.batch_size),
             detector = Detector.create( "fake" ),
             visualizer = BaseVisualizer.create(args.silent_mode),
             writer = Writer.create(args.write_path) if args.write_path else None,

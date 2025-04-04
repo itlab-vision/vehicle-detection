@@ -195,7 +195,7 @@ class ImgDataReader(FrameDataReader):
             img = cv.imread(str(path))
             if img is None:
                 raise ValueError(f"Cannot read image file: {path}")
-            
+
             batch.append(img)
             last_img = img
 
@@ -208,7 +208,7 @@ class ImgDataReader(FrameDataReader):
                 batch.append(last_img.copy())
 
         if batch:
-            self.batches.append(batch) 
+            self.batches.append(batch)
 
     def get_total_images(self):
         """
