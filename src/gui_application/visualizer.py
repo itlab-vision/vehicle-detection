@@ -185,7 +185,7 @@ class GUIVisualizer(BaseVisualizer):
 
     def check_exit(self):
         """Check for Q key press to terminate visualization."""
-        return 0xFF == ord('q')
+        return cv.waitKey(1) & 0xFF == ord('q')
 
     def finalize(self):
         """Cleanup OpenCV resources and progress bar."""
