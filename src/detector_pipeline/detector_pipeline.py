@@ -5,7 +5,7 @@ This module provides classes and methods for managing a vehicle detection pipeli
 including data processing, visualization, result recording, and error handling.
 """
 from dataclasses import dataclass
-import numpy
+import numpy as np
 from src.utils.frame_data_reader import FrameDataReader
 from src.utils.writer import Writer
 from src.vehicle_detector.detector import Detector
@@ -51,6 +51,7 @@ class DetectionPipeline:
 
         self.components = components
         self.gtboxes = None
+        self.batch_size = 1
 
     def run(self):
         """
@@ -58,19 +59,24 @@ class DetectionPipeline:
         
         Workflow:
         1. Initialize visualization and ground truth data (if available)
-        2. Process frames sequentially
+        2. Process frames or batches sequentially
         3. Handle detection, visualization, and result recording
         4. Manage cleanup and error handling
         """
         try:
             with self.components.reader as reader:
-                self.components.visualizer.initialize(reader.get_total_images())
+                self.components.visualizer.initialize(reader.get_total_batches())
+                if hasattr(reader, 'batch_size'):
+                    self.batch_size = getattr(reader, 'batch_size')
+
                 if self.components.gt_reader:
                     self.gtboxes = self._get_gtbboxes(self.components.gt_reader.read())
 
-                for frame_idx, frame in enumerate(reader):
-                    self._process_frame(frame_idx, frame)
-                    self.components.visualizer.update_progress()
+                for batch_idx, batch in enumerate(reader):
+                    self._process_batch(batch_idx, batch)
+
+                    self.current_batch_start_idx += len(batch)
+
                     if self._should_exit():
                         break
 
@@ -79,22 +85,29 @@ class DetectionPipeline:
         finally:
             self._finalize()
 
-    def _process_frame(self, frame_idx: int, frame: numpy.ndarray):
+    def _process_batch(self, batch_idx: int, batch: list[np.ndarray]):
         """
-        Process a single frame through the detection pipeline.
+        Process a single batch through the detection pipeline.
 
-        :param frame_idx: Index of the current frame
-        :param frame: Image frame data in numpy array format
+        :param batch_idx: Index of the current batch
+        :param batch: Image batch data in list of numpy array format
         """
-        detections = self.components.detector.detect(frame)
+        batch_detects = self.components.detector.detect(batch)
 
-        if self.components.writer:
-            self._write_results(frame_idx, detections)
+        for frame_offset, frame_detects in enumerate(batch_detects):
+            frame_idx = batch_idx * self.batch_size + frame_offset
 
-        self.components.visualizer.visualize_frame(
-            frame, detections,
-            self.gtboxes[frame_idx]
-        )
+            if self.components.writer:
+                self._write_results(frame_idx, frame_detects)
+
+            self.components.visualizer.visualize_frame(
+                batch[frame_offset], frame_detects,
+                self.gtboxes[frame_idx]
+            )
+
+        self.components.visualizer.update_progress()
+
+        
 
     def _write_results(self, frame_idx: int, detections: list[tuple]):
         """

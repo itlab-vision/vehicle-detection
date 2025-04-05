@@ -16,11 +16,11 @@ class BaseVisualizer(ABC):
     """Abstract base class defining visualization interface."""
 
     @abstractmethod
-    def initialize(self, total_frames: int):
+    def initialize(self, total_batches: int):
         """
         Initialize visualization resources.
 
-        :param total_frames: Total number of frames to process
+        :param total_batches: Total number of frames to process
         """
 
     @abstractmethod
@@ -83,12 +83,12 @@ class GUIVisualizer(BaseVisualizer):
         self.window_name = "Detection Output"
         self.progress_bar = None
 
-    def initialize(self, total_frames: int):
+    def initialize(self, total_batches: int):
         """
         Initialize OpenCV window and progress bar.
         """
         self.progress_bar = tqdm(
-            total=total_frames,
+            total=total_batches,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
             colour='green',
             dynamic_ncols=True,
@@ -100,7 +100,7 @@ class GUIVisualizer(BaseVisualizer):
         cv.namedWindow(self.window_name, cv.WINDOW_NORMAL)
 
     def update_progress(self):
-        """Advance progress bar by one frame."""
+        """Advance progress bar by one batch."""
         self.progress_bar.update(1)
 
     def visualize_frame(self, frame: numpy.ndarray,
@@ -126,7 +126,7 @@ class GUIVisualizer(BaseVisualizer):
         label, x1, y1, x2, y2 = box[:5]
         confidence = ''
         if len(box) == 6:
-            confidence = str(box[5])
+            confidence = str(box[5])[:4]
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         cv.putText(image, label, (x1 + 10, y1 + 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         cv.putText(image, confidence, (x1 - 10, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
@@ -154,12 +154,12 @@ class CLIVisualizer(BaseVisualizer):
     def __init__(self):
         self.start_time = 0
         self.frame_idx = 0
-        self.total_frames = 0
+        self.total_batches = 0
 
-    def initialize(self, total_frames: int):
+    def initialize(self, total_batches: int):
         """Initialize processing timer."""
         self.start_time = time.time()
-        self.total_frames = total_frames
+        self.total_batches = total_batches
         print("Starting processing...")
 
     def update_progress(self):
@@ -167,9 +167,9 @@ class CLIVisualizer(BaseVisualizer):
 
         elapsed = time.time() - self.start_time
         fps = self.frame_idx / elapsed if elapsed > 0 else 0
-        status = (f"\rProcessed {self.frame_idx}/{self.total_frames} frames | "
+        status = (f"\rProcessed {self.frame_idx}/{self.total_batches} frames | "
             f"Elapsed: {elapsed:.1f}s | FPS: {fps:.1f} | "
-            f"ETA: {(self.total_frames - self.frame_idx)/fps:.3f}s\n")
+            f"ETA: {(self.total_batches - self.frame_idx)/fps:.3f}s\n")
         sys.stdout.write("\r\033[K" + status)
         sys.stdout.flush()
 
