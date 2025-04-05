@@ -20,7 +20,6 @@ Dependencies:
     :numpy: for numerical operations
     :abc: for abstract base class support
 """
-import time
 import random
 from abc import ABC, abstractmethod
 import numpy as np
@@ -96,14 +95,14 @@ class FakeDetector(Detector):
     - Reproducible results via seed control
     """
 
-    def __init__(self, 
+    def __init__(self,
                  seed: int = None,
-                 time_ranges: tuple[tuple[float, float]] = ((0.01, 0.05), 
-                                                          (0.08, 0.3), 
+                 time_ranges: tuple[tuple[float, float]] = ((0.01, 0.05),
+                                                          (0.08, 0.3),
                                                           (0.01, 0.1))):
         """
         Initialize fake detector with controlled randomness.
-        
+
         :param seed: Random seed for reproducibility
         :param time_ranges: Tuple of (preproc, inference, postproc) time ranges
         """
@@ -111,11 +110,11 @@ class FakeDetector(Detector):
         self.time_ranges = time_ranges
         self.classes = ["car", "bus", "truck"]
 
-    def detect(self, batch: list[np.ndarray]):
+    def detect(self, image: list[np.ndarray]):
         """
         Process batch of images with simulated detection pipeline.
         
-        :param batch: List of numpy arrays (HWC images)
+        :param image: List of numpy arrays (HWC images)
         :return: Tuple containing:
             - List of detections per image
             - Preprocessing time
@@ -125,18 +124,16 @@ class FakeDetector(Detector):
         preproc = self.rand.uniform(*self.time_ranges[0])
         inference = self.rand.uniform(*self.time_ranges[1])
         postproc = self.rand.uniform(*self.time_ranges[2])
-        
-        
 
         batch_detections = []
-        for image in batch:
-            if image is None or image.size == 0:
+        for frame in image:
+            if frame is None or frame.size == 0:
                 batch_detections.append([])
                 continue
 
-            height, width = image.shape[:2]
+            height, width = frame.shape[:2]
             detections = []
-            
+
             if self.rand.random() < 0.3:
                 batch_detections.append([])
                 continue

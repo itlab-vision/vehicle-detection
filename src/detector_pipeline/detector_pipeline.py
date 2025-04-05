@@ -87,7 +87,7 @@ class DetectionPipeline:
 
         if self.components.gt_reader:
             raw_gt = self.components.gt_reader.read()
-            self.gt_boxes = self._organize_ground_truth(raw_gt)
+            self.gtboxes = self._organize_ground_truth(raw_gt)
 
     def _process_batch(self, batch_idx: int, batch: list[np.ndarray]):
         """
