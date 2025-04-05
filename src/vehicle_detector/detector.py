@@ -126,7 +126,7 @@ class FakeDetector(Detector):
         inference = self.rand.uniform(*self.time_ranges[1])
         postproc = self.rand.uniform(*self.time_ranges[2])
         
-        time.sleep(inference)
+        
 
         batch_detections = []
         for image in batch:
