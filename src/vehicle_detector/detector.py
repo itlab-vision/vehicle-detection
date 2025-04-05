@@ -20,7 +20,7 @@ Dependencies:
     :numpy: for numerical operations
     :abc: for abstract base class support
 """
-
+import time
 import random
 from abc import ABC, abstractmethod
 import numpy as np
@@ -96,39 +96,74 @@ class FakeDetector(Detector):
     - Reproducible results via seed control
     """
 
-    def __init__(self, seed: int = None):
+    def __init__(self, 
+                 seed: int = None,
+                 time_ranges: tuple[tuple[float, float]] = ((0.01, 0.05), 
+                                                          (0.08, 0.3), 
+                                                          (0.01, 0.1))):
         """
-        :param seed: Random seed for reproducibility
-        """
-        if seed is not None:
-            random.seed(seed)
-
-    def detect(self, image: np.ndarray):
-        """
-        Generate synthetic detections for testing.
+        Initialize fake detector with controlled randomness.
         
-        :param image: Input image array (checks size validity)
-        :return list: Detection tuples (class, x1, y1, x2, y2, confidence)
+        :param seed: Random seed for reproducibility
+        :param time_ranges: Tuple of (preproc, inference, postproc) time ranges
         """
-        if image is None or image.size == 0:
-            return []
-        height, width = image.shape[:2]
-        bboxes = []
-        num_boxes = random.randint(0, 5)
-        chance = random.random()
-        if chance < 0.5:
-            return []
-        for _ in range(num_boxes):
-            if width < 2 or height < 2:
+        self.rand = random.Random(seed)
+        self.time_ranges = time_ranges
+        self.classes = ["car", "bus", "truck"]
+
+    def detect(self, batch: list[np.ndarray]):
+        """
+        Process batch of images with simulated detection pipeline.
+        
+        :param batch: List of numpy arrays (HWC images)
+        :return: Tuple containing:
+            - List of detections per image
+            - Preprocessing time
+            - Inference time
+            - Postprocessing time
+        """
+        preproc = self.rand.uniform(*self.time_ranges[0])
+        inference = self.rand.uniform(*self.time_ranges[1])
+        postproc = self.rand.uniform(*self.time_ranges[2])
+        
+        time.sleep(inference)
+
+        batch_detections = []
+        for image in batch:
+            if image is None or image.size == 0:
+                batch_detections.append([])
                 continue
-            cl = random.choice(["car", "bus", "truck"])
-            x1 = random.randint(0, width - 2)
-            x2 = random.randint(x1 + 1, width - 1)
-            y1 = random.randint(0, height - 2)
-            y2 = random.randint(y1 + 1, height - 1)
-            confidence = random.random()
-            bboxes.append((cl, x1, y1, x2, y2, confidence))
-        return bboxes
+
+            height, width = image.shape[:2]
+            detections = []
+            
+            if self.rand.random() < 0.3:
+                batch_detections.append([])
+                continue
+
+            for _ in range(self.rand.randint(0, 5)):
+                try:
+                    x1 = self.rand.randint(0, width-2)
+                    x2 = self.rand.randint(x1+1, width-1)
+                    y1 = self.rand.randint(0, height-2)
+                    y2 = self.rand.randint(y1+1, height-1)
+                except ValueError:
+                    continue
+
+                detections.append((
+                    self.rand.choice(self.classes),
+                    x1, y1, x2, y2,
+                    round(self.rand.uniform(0.4, 0.99), 2)
+                ))
+
+            batch_detections.append(detections)
+
+        return (
+            batch_detections,
+            preproc,
+            inference,
+            postproc
+        )
 
 
 class VehicleDetectorFasterRCNN(Detector):

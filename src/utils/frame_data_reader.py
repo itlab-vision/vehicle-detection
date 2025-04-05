@@ -203,11 +203,11 @@ class ImgDataReader(FrameDataReader):
                 self.batches.append(batch)
                 batch = []
 
-        if last_img:
+        if last_img is not None:
             while len(batch) < self.batch_size:
                 batch.append(last_img.copy())
 
-        if batch:
+        if batch is not None:
             self.batches.append(batch)
 
     def get_total_batches(self):

@@ -24,18 +24,30 @@ class BaseVisualizer(ABC):
         """
 
     @abstractmethod
-    def update_progress(self):
-        """Update progress tracking display."""
+    def batch_start(self, batch_idx: int, preproc_time: float,
+                  inference_time: float, postproc_time: float):
+        """Handle batch processing start.
+
+        :param batch_idx: Current batch index
+        :param preproc_time: Batch preprocessing time in seconds
+        :param inference_time: Model inference time in seconds
+        :param postproc_time: Postprocessing time in seconds
+        """
 
     @abstractmethod
-    def visualize_frame(self, frame: numpy.ndarray,
-                     detections: list, ground_truth: list = None):
-        """
-        Render frame with detection annotations.
+    def batch_end(self):
+        """Handle batch processing completion."""
 
+    @abstractmethod
+    def visualize_frame(self, frame_idx:int, frame: numpy.ndarray,
+                     detections: list[tuple], ground_truth: list[tuple]):
+        """
+        RVisualize detection results on a single frame.
+
+        :param frame_idx: Global frame index
         :param frame: Input image array in BGR format
         :param detections: List of detected objects in format:
-                        (label, x1, y1, x2, y2[, confidence])
+                        (label, x1, y1, x2, y2, confidence)
         :param ground_truth: List of ground truth boxes in format:
                          (label, x1, y1, x2, y2)
         """
@@ -45,7 +57,7 @@ class BaseVisualizer(ABC):
         """
         Check for early termination request.
 
-        :return bool: True if termination requested, False otherwise
+        :return bool: True if processing should terminate, False otherwise
         """
 
     @abstractmethod
@@ -58,6 +70,8 @@ class BaseVisualizer(ABC):
         Factory method for visualizer instances.
 
         :param silent: If True, creates CLI visualizer; otherwise GUI
+
+        :return BaseVisualizer: Configured visualizer instance
         """
         if silent:
             return CLIVisualizer()
@@ -65,23 +79,34 @@ class BaseVisualizer(ABC):
 
 
 class GUIVisualizer(BaseVisualizer):
-    """
-    GUI visualization using OpenCV with real-time annotations and progress bar.
+    """GUI visualization using OpenCV with real-time display.
 
     Features:
-    - Bounding box rendering (blue for detections, green for ground truth)
+    - Bounding box visualization (blue for detections, green for ground truth)
     - Confidence score display
-    - Interactive window with keyboard controls
-    - Frame rate statistics
+    - Processing time statistics
+    - Interactive controls
+    - Progress tracking
     """
+
+    BOX_COLORS = {
+        'detection': (255, 0, 0),
+        'ground_truth': (0, 255, 0)
+    }
 
     def __init__(self):
         """
         Initialize visualization components with data sources.
         """
         self.start_time = time.time()
-        self.window_name = "Detection Output"
+        self.window_name = "Vehicle Detection Output"
+        self.current_batch = 0
         self.progress_bar = None
+        self.processing_times = {
+            'preproc': 0.0,
+            'inference': 0.0,
+            'postproc': 0.0
+        }
 
     def initialize(self, total_batches: int):
         """
@@ -92,44 +117,77 @@ class GUIVisualizer(BaseVisualizer):
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
             colour='green',
             dynamic_ncols=True,
-            unit='frame',
             unit_scale=True,
+            unit='batch',
             position=0
         )
 
         cv.namedWindow(self.window_name, cv.WINDOW_NORMAL)
 
-    def update_progress(self):
-        """Advance progress bar by one batch."""
+    def batch_start(self, batch_idx: int, preproc_time: float,
+                  inference_time: float, postproc_time: float):
+        """Record batch processing metrics."""
+        self.current_batch = batch_idx
+        self.processing_times.update({
+            'preproc': preproc_time,
+            'inference': inference_time,
+            'postproc': postproc_time
+        })
+
+
+    def batch_end(self):
+        """Update progress display."""
         self.progress_bar.update(1)
 
-    def visualize_frame(self, frame: numpy.ndarray,
-                     detections: list, ground_truth: list = None):
+    def visualize_frame(self, frame_idx:int, frame: numpy.ndarray,
+                     detections: list[tuple], ground_truth: list[tuple]):
         """Render frame with bounding boxes and text annotations."""
-        for box in detections:
-            self._draw_box(frame, box, (255, 0, 0))
+        self._draw_processing_info(frame_idx, frame)
 
-        for box in ground_truth:
-            self._draw_box(frame, box, (0, 255, 0))
+        for det in detections:
+            self._draw_bbox(frame, det, 'detection')
+
+        for gt in ground_truth:
+            self._draw_bbox(frame, gt, 'ground_truth')
 
         cv.imshow(self.window_name, frame)
+        cv.waitKey(1)
 
-    @staticmethod
-    def _draw_box(image: numpy.ndarray, box: tuple, color: tuple):
+    def _draw_bbox(self, frame: numpy.ndarray, box_data: tuple, box_type: str):
         """
         Internal method: Draw single bounding box with label.
 
-        :param image: Input frame matrix
+        :param frame: Input frame matrix
         :param box: Detection tuple (label, x1, y1, x2, y2, confidence(detector) )
-        :param color: BGR tuple for box/label color
+        :param box_type: BGR tuple for box/label color
         """
-        label, x1, y1, x2, y2 = box[:5]
-        confidence = ''
-        if len(box) == 6:
-            confidence = str(box[5])[:4]
-        cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        cv.putText(image, label, (x1 + 10, y1 + 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv.putText(image, confidence, (x1 - 10, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.4, color, 2)
+        label, x1, y1, x2, y2, *confidence = box_data
+        color = self.BOX_COLORS[box_type]
+
+        cv.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+        if confidence:
+            label += f" {confidence[0]:.2f}"
+        (text_width, text_height), _ = cv.getTextSize(label,
+                                                     cv.FONT_HERSHEY_SIMPLEX,
+                                                     0.5, 1)
+
+        cv.rectangle(frame, (x1, y1 - text_height - 4),
+                    (x1 + text_width, y1), color, -1)
+
+        cv.putText(frame, label, (x1, y1 - 5),
+                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    def _draw_processing_info(self, frame_idx:int, frame: numpy.ndarray):
+        """Draw processing metadata on frame."""
+        info_text = (
+            f"Batch: {self.current_batch} | Frame: {frame_idx} | "
+            f"Pre: {self.processing_times['preproc']}s | "
+            f"Inference: {self.processing_times['inference']}s | "
+            f"Post: {self.processing_times['postproc']}s"
+        )
+        cv.putText(frame, info_text, (10, 20),
+                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     def check_exit(self):
         """Check for Q key press to terminate visualization."""
@@ -153,51 +211,57 @@ class CLIVisualizer(BaseVisualizer):
 
     def __init__(self):
         self.start_time = 0
-        self.frame_idx = 0
         self.total_batches = 0
+        self.current_batch = 0
+        self.processing_times = {
+            'preproc': 0.0,
+            'inference': 0.0,
+            'postproc': 0.0
+        }
 
     def initialize(self, total_batches: int):
         """Initialize processing timer."""
         self.start_time = time.time()
         self.total_batches = total_batches
-        print("Starting processing...")
+        print(f"Starting processing of {total_batches} batches")
 
-    def update_progress(self):
+    def batch_start(self, batch_idx:int, preproc_time: float,
+                  inference_time: float, postproc_time: float):
+        """Record batch metrics."""
+        self.current_batch = batch_idx
+        self.processing_times.update({
+            'preproc': preproc_time,
+            'inference': inference_time,
+            'postproc': postproc_time
+        })
+
+        self._print_batch_header(batch_idx)
+
+    def batch_end(self, batch_idx: int):
         """Update console progress display."""
 
         elapsed = time.time() - self.start_time
-        fps = self.frame_idx / elapsed if elapsed > 0 else 0
-        status = (f"\rProcessed {self.frame_idx}/{self.total_batches} frames | "
-            f"Elapsed: {elapsed:.1f}s | FPS: {fps:.1f} | "
-            f"ETA: {(self.total_batches - self.frame_idx)/fps:.3f}s\n")
-        sys.stdout.write("\r\033[K" + status)
+        sys.stdout.write(
+            f"\rProcessed {self.current_batch+1}/{self.total_batches} batches | "
+            f"Elapsed: {elapsed:.1f}s | "
+            f"Times (P/I/Po): {self.processing_times['preproc']}/"
+            f"{self.processing_times['inference']}/"
+            f"{self.processing_times['postproc']}s"
+        )
         sys.stdout.flush()
 
-    def visualize_frame(self, frame: numpy.ndarray,
+    def visualize_frame(self, frame_idx: int, frame: numpy.ndarray,
                      detections: list, ground_truth: list = None):
         """Print frame detection details to console."""
 
-        self._print_frame_header(self.frame_idx)
-        self._print_bbox(detections, "Detections")
+        print(f"\n\tFrame {frame_idx}:")
+        for det in detections:
+            label, x1, y1, x2, y2, conf = det
+            print(f"\t{label}: ({x1},{y1})-({x2},{y2}) @ {conf:.2f}")
 
-        self.frame_idx += 1
-
-    def _print_frame_header(self, frame_idx: int):
-        """Internal: Print frame separator."""
-        print(f"\n=== Frame {frame_idx} ===")
-
-    def _print_bbox(self, boxes: list, title: str):
-        """Internal: Print detection details."""
-        if not boxes:
-            return
-
-        print(f"{title}:")
-        for box in boxes:
-            label = box[0]
-            coords = list(map(int, box[1:5]))
-            conf = f", Confidence: {box[5]:.2f}" if len(box) > 5 else ""
-            print(f"  {label}: ({coords[0]}, {coords[1]})"
-                 f" - ({coords[2]}, {coords[3]}){conf}")
+    def _print_batch_header(self, batch_idx: int):
+        """Internal: Print batch separator."""
+        print(f"\nBatch {batch_idx}:")
 
     def check_exit(self):
         """CLI visualizer doesn't support interactive termination."""
