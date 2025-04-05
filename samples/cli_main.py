@@ -93,7 +93,7 @@ def cli_argument_parser():
                         help='Set size of image batch',
                         type=int,
                         dest='batch_size',
-                        default=None)
+                        default=1)
 
     args = parser.parse_args()
     return args
