@@ -151,7 +151,7 @@ class GUIVisualizer(BaseVisualizer):
             self._draw_bbox(frame, gt, 'ground_truth')
 
         cv.imshow(self.window_name, frame)
-        cv.waitKey(1)
+        cv.waitKey(33)
 
     def _draw_bbox(self, frame: numpy.ndarray, box_data: tuple, box_type: str):
         """
@@ -168,12 +168,6 @@ class GUIVisualizer(BaseVisualizer):
 
         if confidence:
             label += f" {confidence[0]:.2f}"
-        (text_width, text_height), _ = cv.getTextSize(label,
-                                                     cv.FONT_HERSHEY_SIMPLEX,
-                                                     0.5, 1)
-
-        cv.rectangle(frame, (x1, y1 - text_height - 4),
-                    (x1 + text_width, y1), color, -1)
 
         cv.putText(frame, label, (x1, y1 - 5),
                  cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
@@ -182,16 +176,16 @@ class GUIVisualizer(BaseVisualizer):
         """Draw processing metadata on frame."""
         info_text = (
             f"Batch: {self.current_batch} | Frame: {frame_idx} | "
-            f"Pre: {self.processing_times['preproc']}s | "
-            f"Inference: {self.processing_times['inference']}s | "
-            f"Post: {self.processing_times['postproc']}s"
+            f"Pre: {self.processing_times['preproc']:.2f}s | "
+            f"Inference: {self.processing_times['inference']:.2f}s | "
+            f"Post: {self.processing_times['postproc']:.2f}s"
         )
         cv.putText(frame, info_text, (10, 20),
-                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                 cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
 
     def check_exit(self):
         """Check for Q key press to terminate visualization."""
-        return cv.waitKey(25) & 0xFF == ord('q')
+        return 0xFF == ord('q')
 
     def finalize(self):
         """Cleanup OpenCV resources and progress bar."""
@@ -237,16 +231,16 @@ class CLIVisualizer(BaseVisualizer):
 
         self._print_batch_header(batch_idx)
 
-    def batch_end(self, batch_idx: int):
+    def batch_end(self):
         """Update console progress display."""
 
         elapsed = time.time() - self.start_time
         sys.stdout.write(
             f"\rProcessed {self.current_batch+1}/{self.total_batches} batches | "
             f"Elapsed: {elapsed:.1f}s | "
-            f"Times (P/I/Po): {self.processing_times['preproc']}/"
-            f"{self.processing_times['inference']}/"
-            f"{self.processing_times['postproc']}s"
+            f"Times (P/I/Po): {self.processing_times['preproc']:.4f}/"
+            f"{self.processing_times['inference']:.4f}/"
+            f"{self.processing_times['postproc']:.4f}s"
         )
         sys.stdout.flush()
 
@@ -254,10 +248,11 @@ class CLIVisualizer(BaseVisualizer):
                      detections: list, ground_truth: list = None):
         """Print frame detection details to console."""
 
-        print(f"\n\tFrame {frame_idx}:")
+        print(f"\tFrame {frame_idx}:")
         for det in detections:
             label, x1, y1, x2, y2, conf = det
             print(f"\t{label}: ({x1},{y1})-({x2},{y2}) @ {conf:.2f}")
+        print()
 
     def _print_batch_header(self, batch_idx: int):
         """Internal: Print batch separator."""
