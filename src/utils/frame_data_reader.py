@@ -134,7 +134,7 @@ class VideoDataReader(FrameDataReader):
         if self._cap.isOpened():
             ret, frame = self._cap.read()
             if ret:
-                return frame
+                return [frame]
             raise StopIteration
         raise StopIteration
 
