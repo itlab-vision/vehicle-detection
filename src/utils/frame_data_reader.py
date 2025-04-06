@@ -95,6 +95,10 @@ class VideoDataReader(FrameDataReader):
         Initialize video capture and validate path.
 
         :param video_path: Path to video file
+
+        :var cap: OpenCV VideoCapture object.
+            Used internally for video frame reading and video properties access
+
         :raise ValueError: If video file cannot be opened
         """
         self.video_path = video_path
