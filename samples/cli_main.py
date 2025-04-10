@@ -89,7 +89,7 @@ def cli_argument_parser():
                         help='Set silent mode of program',
                         action='store_true',
                         dest='silent_mode')
-    parser.add_argument('-b', '--batches',
+    parser.add_argument('-b', '--batch_size',
                         help='Set size of image batch',
                         type=int,
                         dest='batch_size',
