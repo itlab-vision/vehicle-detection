@@ -177,8 +177,8 @@ class ImgDataReader(FrameDataReader):
             - Directory contains no valid image files
             - Batch size is <= 0
         """
-        if (batch_size <= 0):
-            raise ValueError(f"Size of batch must be positive!")
+        if batch_size <= 0:
+            raise ValueError(f"Size of batch must be positive but got {batch_size}.")
 
         self.batch_size = batch_size
         self.images_paths = []
@@ -260,7 +260,7 @@ class ImgDataReader(FrameDataReader):
                 while len(self.current_batch) < self.batch_size:
                     self.current_batch.append(self.last_img.copy())
                 break
-        
+
         batch = self.current_batch
         self.current_batch = []
         return batch
