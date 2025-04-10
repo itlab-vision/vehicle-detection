@@ -82,8 +82,13 @@ class DetectionPipeline:
 
     def _initialize_processing(self, reader: FrameDataReader):
         """Prepare processing components and load ground truth if available."""
-        self.components.visualizer.initialize(reader.get_total_batches())
-        self.batch_size = getattr(reader, 'batch_size', 1)
+
+        total_frames = reader.get_total_images()
+        batch_size = getattr(reader, 'batch_size', 1)
+        total_batches = (total_frames + batch_size - 1) // batch_size
+
+        self.components.visualizer.initialize(total_batches)
+        self.batch_size = batch_size
 
         if self.components.gt_reader:
             raw_gt = self.components.gt_reader.read()
