@@ -65,19 +65,20 @@ class FrameDataReader(ABC):
         :return int: total images
         """
     @staticmethod
-    def create(mode: str, dir_path: str):
+    def create(mode: str, dir_path: str, batch_size: int):
         """
         Factory method to create appropriate reader instance.
         
         :param mode: Source type - 'video' or 'image'
         :param dir_path: Path to video file or image directory
+        :param batch_size: Size of image batch
         :return FrameDataReader: Concrete reader instance
         :raise ValueError: For unsupported modes or invalid paths
         """
         if mode == "video":
             return VideoDataReader(dir_path)
         if mode == "image":
-            return ImgDataReader(dir_path)
+            return ImgDataReader(dir_path, batch_size)
         raise ValueError(f"Unsupported mode: {mode}")
 
 
@@ -94,6 +95,9 @@ class VideoDataReader(FrameDataReader):
         Initialize video capture and validate path.
 
         :param video_path: Path to video file
+        :var cap: OpenCV VideoCapture object.
+            Used internally for video frame reading and video properties access
+
         :raise ValueError: If video file cannot be opened
         """
         self.video_path = video_path
@@ -101,7 +105,7 @@ class VideoDataReader(FrameDataReader):
 
     def get_total_images(self):
         """
-        :return int: number of images
+        :return int: number of images in video
         """
         return int(self._cap.get(cv.CAP_PROP_FRAME_COUNT))
 
@@ -133,7 +137,7 @@ class VideoDataReader(FrameDataReader):
         if self._cap.isOpened():
             ret, frame = self._cap.read()
             if ret:
-                return frame
+                return [frame]
             raise StopIteration
         raise StopIteration
 
@@ -143,20 +147,48 @@ class ImgDataReader(FrameDataReader):
     Image directory frame reader.
 
     - Iterates through image files in directory sorted alphabetically.
+    - Returns images in batches of specified size.
+    - If last batch is incomplete, it is padded with copies of the last image.
     - Supports common image formats: PNG, JPG, JPEG, BMP, TIFF.
     """
 
-    def __init__(self, dir_path: str):
+    def __init__(self, dir_path: str, batch_size: int = 1):
         """
-        Validate directory and prepare image file list.
+        Initializes the image batch reader with directory and batch configuration.
 
-        :param dir_path: Path to image directory
-        :raise ValueError: For invalid directory path
+        :param dir_path: Path to the directory containing image files. 
+
+        :param batch_size: 
+            Number of images to return per batch. 
+            Defaults to 1 (single image per batch).
+            Must be positive integer.
+
+        :var batch_size: Stores the configured batch size
+        :var images_paths: Sorted list of valid image paths
+        :var dir_path: Resolved path object to the directory
+        :var current_path_index: Tracks current read position (0 at start)
+        :var current_batch: Buffer for accumulating current batch
+        :var last_img: Cache of last successfully read image
+
+        Raises:
+            ValueError: Under these conditions:
+            - Specified directory doesn't exist
+            - Path exists but isn't a directory
+            - Directory contains no valid image files
+            - Batch size is <= 0
         """
-        self.index = 0
+        if batch_size <= 0:
+            raise ValueError(f"Size of batch must be positive but got {batch_size}.")
+
+        self.batch_size = batch_size
+        self.images_paths = []
         self.dir_path = Path(dir_path)
         self._validate_directory()
         self._prepare_file_list()
+
+        self.current_path_index = 0
+        self.current_batch = []
+        self.last_img = None
 
     def _validate_directory(self):
         """Ensure directory exists and is accessible."""
@@ -168,19 +200,19 @@ class ImgDataReader(FrameDataReader):
     def _prepare_file_list(self):
         """Create sorted list of valid image files."""
         valid_extensions = {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
-        self.image_files = [
+        self.image_paths = [
             str(file) for file in self.dir_path.iterdir()
             if file.is_file() and file.suffix.lower() in valid_extensions
         ]
 
-        if not self.image_files:
+        if not self.image_paths:
             raise ValueError(f"No valid images found in: {self.dir_path}")
 
     def get_total_images(self):
         """
         :return int: number of images
         """
-        return len(self.image_files)
+        return len(self.image_paths)
 
     def __enter__(self):
         """
@@ -195,24 +227,40 @@ class ImgDataReader(FrameDataReader):
 
     def __iter__(self):
         """
+        Resets all iteration state variables
         :return self: Iterator instance
         """
+        self.current_path_index = 0
+        self.current_batch = []
+        self.last_img = None
         return self
 
     def __next__(self):
         """
-        Load next image in directory.
+        Load the next batch of images dynamically.
 
-        :return: ndarray: Image data as numpy array
-
-        :raise StopIteration: When all images processed
-        :raise ValueError: If image file cannot be read
+        :return List[np.ndarray]: Batch of images
+        :raise StopIteration: When all batches are processed
         """
-        if self.index < len(self.image_files):
-            img_path = self.image_files[self.index]
-            self.index += 1
-            img = cv.imread(img_path)
-            if img is None:
-                raise ValueError(f"Cannot read image file: {img_path}")
-            return img
-        raise StopIteration
+        while len(self.current_batch) < self.batch_size:
+            if self.current_path_index < len(self.image_paths):
+
+                path = self.image_paths[self.current_path_index]
+                img = cv.imread(path)
+                if img is None:
+                    raise ValueError(f"Cannot read image file: {path}")
+                self.current_batch.append(img)
+                self.last_img = img
+                self.current_path_index += 1
+            else:
+
+                if not self.current_batch:
+                    raise StopIteration()
+
+                while len(self.current_batch) < self.batch_size:
+                    self.current_batch.append(self.last_img.copy())
+                break
+
+        batch = self.current_batch
+        self.current_batch = []
+        return batch
