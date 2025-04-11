@@ -91,8 +91,8 @@ def config_main(parameters):
 
     visualizer = BaseVisualizer.create(parameters['silent_mode'])
     writer = Writer.create(parameters['write_path']) if parameters['write_path'] else None
-    gr_p = parameters['groundtruth_path']
-    gt_reader = dr.CsvGTReader(gr_p) if gr_p else None
+    gt_reader = dr.CsvGTReader(parameters['groundtruth_path']) \
+                   if parameters['groundtruth_path'] else None
 
     return PipelineComponents(reader, detector, visualizer, writer, gt_reader)
 
