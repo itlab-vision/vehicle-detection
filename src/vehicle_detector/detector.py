@@ -103,8 +103,7 @@ class VehicleDetectorOpenCV(Detector):
         elif format_load == 'Darknet':
             self.model = cv.dnn.readNetFromDarknet(paths['path_config'], paths['path_weights'])
         elif format_load == 'ONNX':
-            self.model = cv.dnn.readNetFromONNX
-            (paths['path_weights'])
+            self.model = cv.dnn.readNetFromONNX(paths['path_weights'])
         else:
             raise ValueError('Incorrect format load.')
 
