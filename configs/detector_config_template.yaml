@@ -1,18 +1,18 @@
-- mode: 		#'image' or 'video' mode.
-  images_path: 		#The path to the folder with images, if the image mode is.
-  video_path: 		#The path to the folder with the video, if the video mode is.
-  groundtruth_path: 	#The path to the markup file in csv format, if available.
-  model_name: 		#The name of the model that you will use
-  adapter_name: 	#Adapter name for the model
-  path_classes: 	#The path to the file with the names of the classes on which the model is trained
-  path_weights: 	#The path to the model's weights file
-  path_config: 		#The path to the model architecture file
-  write_path: 		#The path to the file where the detections will be recorded
-  batch_size:		#The size of the image bundle
-  confidence: 		#Desired detection accuracy
-  nms_threshold: 	#Desired overlap area in the segment [0, 1]
-  scale: 		#Scale in the segment [0, 1]
-  size: 		#The size of the input image for the model
-  mean: 		#The average value of colors for each channel, three values in the segment [0, 255]
-  swapRB: 		#Swap red and blue. The value is False or True
-  silent_mode: 		#Graphical output or console-only. The value is True or False
+- mode: 		# 'image' or 'video' mode.
+  images_path: 		# The path to the directory with images in the 'image' mode.
+  video_path: 		# The path to the directory with video in the 'video' mode.
+  groundtruth_path: 	# The path to the layout in the csv format, if it is available.
+  model_name: 		# The model name
+  adapter_name: 	# Adapter name for the model
+  path_classes: 	# The path to the file with the names of the classes for which the model was trained
+  path_weights: 	# The path to the model weights file
+  path_config: 		# The path to the model description file
+  write_path: 		# The path to the output file with detections
+  batch_size:		# The batch size for inference
+  confidence: 		# Desired detection accuracy
+  nms_threshold: 	# Desired overlap area for non-maximal suppression (in [0, 1])
+  scale: 		# Scale factor to normalize pixel intencities (in [0, 1])
+  size: 		# The input size of the model
+  mean: 		# The mean value of intencities for each channel (three values in [0, 255])
+  swapRB: 		# Flag to swap red and blue channels. The value is False or True
+  silent_mode: 		# Flag that correspond to the application mode (GUI or console). The value is True (console) or False (GUI)
