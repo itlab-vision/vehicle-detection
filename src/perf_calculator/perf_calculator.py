@@ -39,9 +39,9 @@ class PerformanceCalculator:
     def reset(self):
         """Reset calculator state while preserving total frames and batch size configuration."""
         self.start_time = time.time()
-        self.preproc_times: List[float] = []
-        self.inference_times: List[float] = []
-        self.postproc_times: List[float] = []
+        self.preproc_times:     List[float] = []
+        self.inference_times:   List[float] = []
+        self.postproc_times:    List[float] = []
 
     def add_batch(self,
                   preproc: float,
@@ -71,12 +71,11 @@ class PerformanceCalculator:
             - batch_fps:                Frames per second (batch)
             - inference_fps:            Frames per second (inference)
         """
-        sorted_inference = sorted(self.inference_times)
-        total_inference = sum(self.inference_times)
         total_frames = self.valid_batches * self.batch_size
-        total_batches = len(self.inference_times)
         total_time = time.time() - self.start_time
-        latency = self._median(sorted_inference)
+        latency = self._median(sorted(self.inference_times))
+        total_batches = len(self.inference_times)
+        total_inference = sum(self.inference_times)
 
         return {
             'total_frames': total_frames,
