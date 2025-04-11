@@ -41,10 +41,10 @@ class Detector(ABC):
     """
 
     def __init__(self, param_detect, adapter):
-        self.scale = param_detect[0]
-        self.size = param_detect[1]
-        self.mean = param_detect[2]
-        self.swap_rb = param_detect[3]
+        self.scale = param_detect['scale']
+        self.size = param_detect['size']
+        self.mean = param_detect['mean']
+        self.swap_rb = param_detect['swapRB']
         self.adapter = adapter
 
     @abstractmethod
@@ -73,20 +73,20 @@ class Detector(ABC):
 
         if adapter_name == 'AdapterYOLO':
             return VehicleDetectorOpenCV('Darknet', paths, param_detect,
-                                         ad.AdapterYOLO(param_adapter[0],
-                                         param_adapter[1], class_names))
+                                         ad.AdapterYOLO(param_adapter['confidence'],
+                                         param_adapter['nms_threshold'], class_names))
         if adapter_name == 'AdapterYOLOTiny':
             return VehicleDetectorOpenCV('ONNX', paths, param_detect,
-                                         ad.AdapterYOLOTiny(param_adapter[0],
-                                         param_adapter[1], class_names))
+                                         ad.AdapterYOLOTiny(param_adapter['confidence'],
+                                         param_adapter['nms_threshold'], class_names))
         if adapter_name == 'AdapterDetectionTask':
             return VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
-                                         ad.AdapterDetectionTask(param_adapter[0],
-                                         param_adapter[1], class_names))
+                                         ad.AdapterDetectionTask(param_adapter['confidence'],
+                                         param_adapter['nms_threshold'], class_names))
         if adapter_name == 'AdapterFasterRCNN':
             return VehicleDetectorFasterRCNN(param_detect,
-                                             ad.AdapterFasterRCNN(param_adapter[0],
-                                             param_adapter[1], class_names))
+                                             ad.AdapterFasterRCNN(param_adapter['confidence'],
+                                             param_adapter['nms_threshold'], class_names))
         if adapter_name == "fake":
             return FakeDetector()
         raise ValueError(f"Unsupported adapter: {adapter_name}")
@@ -99,11 +99,12 @@ class VehicleDetectorOpenCV(Detector):
 
         super().__init__(param_detect, adapter)
         if format_load == 'TensorFlow':
-            self.model = cv.dnn.readNetFromTensorflow(paths[0], paths[1])
+            self.model = cv.dnn.readNetFromTensorflow(paths['path_weights'], paths['path_config'])
         elif format_load == 'Darknet':
-            self.model = cv.dnn.readNetFromDarknet(paths[1], paths[0])
+            self.model = cv.dnn.readNetFromDarknet(paths['path_config'], paths['path_weights'])
         elif format_load == 'ONNX':
-            self.model = cv.dnn.readNetFromONNX(paths[0])
+            self.model = cv.dnn.readNetFromONNX
+            (paths['path_weights'])
         else:
             raise ValueError('Incorrect format load.')
 

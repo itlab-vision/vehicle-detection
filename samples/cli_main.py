@@ -72,11 +72,22 @@ def config_main(parameters):
     elif parameters['mode'] == 'video':
         reader = FrameDataReader.create(parameters['mode'], parameters['video_path'])
 
+    param_detect = { }
+    param_detect['scale'] = parameters['scale']
+    param_detect['size'] = parameters['size']
+    param_detect['mean'] = parameters['mean']
+    param_detect['swapRB'] = parameters['swapRB']
+
+    param_adapter = { }
+    param_adapter['confidence'] = parameters['confidence']
+    param_adapter['nms_threshold'] = parameters['nms_threshold']
+
+    paths = { }
+    paths['path_weights'] = parameters['path_weights']
+    paths['path_config'] = parameters['path_config']
+
     detector = Detector.create(parameters['adapter_name'], parameters['path_classes'],
-                              (parameters['path_weights'], parameters['path_config']),
-                              (parameters['confidence'], parameters['nms_threshold']),
-                              (parameters['scale'], parameters['size'], parameters['mean'],
-                               parameters['swapRB']))
+                              paths, param_adapter, param_detect)
 
     visualizer = BaseVisualizer.create(parameters['silent_mode'])
     writer = Writer.create(parameters['write_path']) if parameters['write_path'] else None
