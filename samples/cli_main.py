@@ -19,9 +19,11 @@ Modules:
 - writer: Manages result storage
 - accuracy_checker: Computes detection accuracy metrics
 """
-import argparse
 import sys
 from pathlib import Path
+import argparse
+import config_parser
+
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -33,22 +35,12 @@ from src.vehicle_detector.detector import Detector
 from src.detector_pipeline.detector_pipeline import PipelineComponents, DetectionPipeline
 from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 
-
 def cli_argument_parser():
     """
     Parse command-line arguments for the visualizer application.
 
-    Defines and parses arguments for specifying input mode (image/video), file paths,
-    groundtruth data, and model path. Ensures mutual exclusivity between video and image paths
-    based on the selected mode.
-
     Returns:
-        argparse.Namespace: Parsed arguments with the following attributes:
-            - mode (str): Input mode ('image' or 'video'), required
-            - video_path (str): Path to video file (required if mode is 'video')
-            - images_path (str): Path to image directory (required if mode is 'image')
-            - groundtruth_path (str): Path to groundtruth data file, optional
-            - model_path (str): Path to model file, required
+        argparse.Namespace: Parsed arguments
 
     Raises:
         argparse.ArgumentError:
@@ -56,50 +48,16 @@ def cli_argument_parser():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-t', '--mode',
-                        help='Mode (\'image\', \'video\')',
+    parser.add_argument('-y', '--yaml',
                         type=str,
-                        dest='mode',
-                        choices=['image', 'video'],
+                        help = 'Path to a yaml file',
+                        dest='yaml_file',
                         required=True)
-    parser.add_argument('-v', '--video',
-                        help='Path to a video file',
-                        type=str,
-                        dest='path')
-    parser.add_argument('-i', '--image',
-                        help='Path to images',
-                        type=str,
-                        dest='path')
-    parser.add_argument('-g', '--groundtruth',
-                        help='Path to a file of groundtruth',
-                        type=str,
-                        dest='groundtruth_path')
-    parser.add_argument('-m', '--model',
-                        help='Path to a model',
-                        type=str,
-                        dest='model_path',
-                        required=True,
-                        default=None)
-    parser.add_argument('-w', '--write',
-                        help='Full path to the file to write.',
-                        type=str,
-                        dest='write_path',
-                        default=None)
-    parser.add_argument('-s', '--silent',
-                        help='Set silent mode of program',
-                        action='store_true',
-                        dest='silent_mode')
-    parser.add_argument('-b', '--batch_size',
-                        help='Set size of image batch',
-                        type=int,
-                        dest='batch_size',
-                        default=1)
 
     args = parser.parse_args()
     return args
 
-
-def config_main(args: argparse.Namespace):
+def config_main(parameters):
     """
     Configure pipeline components.
 
@@ -107,13 +65,36 @@ def config_main(args: argparse.Namespace):
 
     :return PipelineComponents: Configured pipeline objects with GUI visualizer
     """
-    return PipelineComponents(
-            reader = FrameDataReader.create(args.mode, args.path, args.batch_size),
-            detector = Detector.create( "fake" ),
-            visualizer = BaseVisualizer.create(args.silent_mode),
-            writer = Writer.create(args.write_path) if args.write_path else None,
-            gt_reader = dr.CsvGTReader(args.groundtruth_path) if args.groundtruth_path else None)
 
+    reader = 0
+    if parameters['mode'] == 'image':
+        reader = FrameDataReader.create(parameters['mode'], parameters['images_path'])
+    elif parameters['mode'] == 'video':
+        reader = FrameDataReader.create(parameters['mode'], parameters['video_path'])
+
+    param_detect = { }
+    param_detect['scale'] = parameters['scale']
+    param_detect['size'] = parameters['size']
+    param_detect['mean'] = parameters['mean']
+    param_detect['swapRB'] = parameters['swapRB']
+
+    param_adapter = { }
+    param_adapter['confidence'] = parameters['confidence']
+    param_adapter['nms_threshold'] = parameters['nms_threshold']
+
+    paths = { }
+    paths['path_weights'] = parameters['path_weights']
+    paths['path_config'] = parameters['path_config']
+
+    detector = Detector.create(parameters['adapter_name'], parameters['path_classes'],
+                              paths, param_adapter, param_detect)
+
+    visualizer = BaseVisualizer.create(parameters['silent_mode'])
+    writer = Writer.create(parameters['write_path']) if parameters['write_path'] else None
+    gt_reader = dr.CsvGTReader(parameters['groundtruth_path']) \
+                   if parameters['groundtruth_path'] else None
+
+    return PipelineComponents(reader, detector, visualizer, writer, gt_reader)
 
 def main():
     """"
@@ -132,17 +113,17 @@ def main():
     - Compatible groundtruth format (when provided)
     """
     try:
+
         args = cli_argument_parser()
-
-        components = config_main(args)
-
+        parameters = config_parser.parse_yaml_file(args.yaml_file)
+        components = config_main(parameters)
         pipeline = DetectionPipeline(components)
         pipeline.run()
 
-        if all([args.groundtruth_path, args.write_path]):
+        if all([parameters['groundtruth_path'], parameters['write_path']]):
             accur_calc = AccuracyCalculator()
-            accur_calc.load_detections(args.write_path)
-            accur_calc.load_groundtruths(args.groundtruth_path)
+            accur_calc.load_detections(parameters['write_path'])
+            accur_calc.load_groundtruths(parameters['groundtruth_path'])
             print (f"TPR: {accur_calc.calc_tpr()}\n"
                 f"FDR: {accur_calc.calc_fdr()}\n"
                 f"MAP: {accur_calc.calc_map()}")
