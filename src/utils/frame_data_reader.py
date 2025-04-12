@@ -253,12 +253,8 @@ class ImgDataReader(FrameDataReader):
                 self.last_img = img
                 self.current_path_index += 1
             else:
-
                 if not self.current_batch:
                     raise StopIteration()
-
-                while len(self.current_batch) < self.batch_size:
-                    self.current_batch.append(self.last_img.copy())
                 break
 
         batch = self.current_batch

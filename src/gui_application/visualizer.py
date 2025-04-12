@@ -181,7 +181,7 @@ class GUIVisualizer(BaseVisualizer):
             f"Post: {self.processing_times['postproc']:.2f}s"
         )
         cv.putText(frame, info_text, (10, 20),
-                 cv.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                 cv.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
 
     def check_exit(self):
         """Check for Q key press to terminate visualization."""
