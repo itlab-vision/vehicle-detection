@@ -249,7 +249,7 @@ class VehicleDetectorFasterRCNN(Detector):
         """
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
         self.model.eval()  # Set the model to evaluation mode
-        self.adapter = AdapterFasterRCNN(conf_threshold, nms_threshold, class_names)
+        self.adapter = ad.AdapterFasterRCNN(conf_threshold, nms_threshold, class_names)
 
     def detect(self, image: np.ndarray):
         """
