@@ -13,11 +13,11 @@ import src.utils.data_reader as dr
 from src.gui_application.visualizer import BaseVisualizer
 
 @dataclass
-class BatchTiming(tuple):
+class BatchTiming():
     """Structure for storing time metrics of a single batch"""
-    preprocess_time: float
-    inference_time: float
-    postprocess_time: float
+    preprocess_time: list[float]
+    inference_time: list[float]
+    postprocess_time: list[float]
 
 @dataclass
 class PipelineComponents:
@@ -57,7 +57,7 @@ class DetectionPipeline:
             raise ValueError("Missing pipeline components")
 
         self.components = components
-        self.batch_timings: list[BatchTiming] = []
+        self.batch_timings = BatchTiming([], [], [])
         self.gtboxes = {}
         self.batch_size = 1
         self.current_batch_start_idx = 0
@@ -91,7 +91,7 @@ class DetectionPipeline:
 
     def get_batch_timings(self):
         """
-        :return list[BatchTimimg]: list of BatchTiming tuples for all processed batches
+        :return BatchTimimg: tuple of lists of all processed batches
         """
         return self.batch_timings
 
@@ -120,7 +120,9 @@ class DetectionPipeline:
         batch_detects, preproc_time, inference_time, postproc_time = detect_results
 
         if batch_idx < self.total_batches - 1 and len(batch_detects) == self.batch_size:
-            self.batch_timings.append(detect_results[1:])
+            self.batch_timings.preprocess_time.append(preproc_time)
+            self.batch_timings.inference_time.append(inference_time)
+            self.batch_timings.postprocess_time.append(postproc_time)
 
         self.components.visualizer.batch_start(
             batch_idx, preproc_time,
