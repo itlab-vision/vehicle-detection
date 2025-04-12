@@ -13,6 +13,13 @@ import src.utils.data_reader as dr
 from src.gui_application.visualizer import BaseVisualizer
 
 @dataclass
+class BatchTiming(tuple):
+    """Structure for storing time metrics of a single batch"""
+    preprocess_time: float
+    inference_time: float
+    postprocess_time: float
+
+@dataclass
 class PipelineComponents:
     """Container class for essential pipeline components.
 
@@ -50,9 +57,11 @@ class DetectionPipeline:
             raise ValueError("Missing pipeline components")
 
         self.components = components
+        self.batch_timings: list[BatchTiming] = []
         self.gtboxes = {}
         self.batch_size = 1
         self.current_batch_start_idx = 0
+        self.total_batches = 0
 
     def run(self):
         """
@@ -80,14 +89,20 @@ class DetectionPipeline:
         finally:
             self._finalize()
 
+    def get_batch_timings(self):
+        """
+        :return list[BatchTimimg]: list of BatchTiming tuples for all processed batches
+        """
+        return self.batch_timings
+
     def _initialize_processing(self, reader: FrameDataReader):
         """Prepare processing components and load ground truth if available."""
 
         total_frames = reader.get_total_images()
         batch_size = getattr(reader, 'batch_size', 1)
-        total_batches = (total_frames + batch_size - 1) // batch_size
+        self.total_batches = (total_frames + batch_size - 1) // batch_size
 
-        self.components.visualizer.initialize(total_batches)
+        self.components.visualizer.initialize(self.total_batches)
         self.batch_size = batch_size
 
         if self.components.gt_reader:
@@ -103,6 +118,9 @@ class DetectionPipeline:
         """
         detect_results = self.components.detector.detect(batch)
         batch_detects, preproc_time, inference_time, postproc_time = detect_results
+
+        if batch_idx < self.total_batches - 1 and len(batch_detects) == self.batch_size:
+            self.batch_timings.append(detect_results[1:])
 
         self.components.visualizer.batch_start(
             batch_idx, preproc_time,
