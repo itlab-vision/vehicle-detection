@@ -100,8 +100,22 @@ class VideoDataReader(FrameDataReader):
 
         :raise ValueError: If video file cannot be opened
         """
-        self.video_path = video_path
+        self.video_path = Path(video_path)
+        self._validate_video_file()
         self._cap = None
+
+    def _validate_video_file(self):
+        """Validate video file with actual OpenCV check."""
+        if not self.video_path.exists():
+            raise ValueError(f"Video file not found: {self.video_path}")
+        if not self.video_path.is_file():
+            raise ValueError(f"Path is not a file: {self.video_path}")
+
+        test_cap = cv.VideoCapture(str(self.video_path))
+        if not test_cap.isOpened():
+            test_cap.release()
+            raise ValueError(f"Unsupported video format/codec: {self.video_path}")
+        test_cap.release()
 
     def get_total_images(self):
         """
@@ -111,7 +125,7 @@ class VideoDataReader(FrameDataReader):
 
     def __enter__(self):
         """Initialize video capture and return iterator."""
-        self._cap = cv.VideoCapture(self.video_path)
+        self._cap = cv.VideoCapture(str(self.video_path))
         if not self._cap.isOpened():
             raise IOError(f"Could not open video file: {self.video_path}")
         return self

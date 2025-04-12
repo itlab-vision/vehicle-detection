@@ -190,7 +190,8 @@ class GUIVisualizer(BaseVisualizer):
     def finalize(self):
         """Cleanup OpenCV resources and progress bar."""
         cv.destroyAllWindows()
-        self.progress_bar.close()
+        if (self.progress_bar):
+            self.progress_bar.close()
         self.progress_bar = None
 
 
