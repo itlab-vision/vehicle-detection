@@ -201,7 +201,6 @@ class ImgDataReader(FrameDataReader):
         self._prepare_file_list()
 
         self.current_path_index = 0
-        self.current_batch = []
         self.last_img = None
 
     def _validate_directory(self):
@@ -245,7 +244,6 @@ class ImgDataReader(FrameDataReader):
         :return self: Iterator instance
         """
         self.current_path_index = 0
-        self.current_batch = []
         self.last_img = None
         return self
 
@@ -256,21 +254,19 @@ class ImgDataReader(FrameDataReader):
         :return List[np.ndarray]: Batch of images
         :raise StopIteration: When all batches are processed
         """
-        while len(self.current_batch) < self.batch_size:
+        batch = []
+        while len(batch) < self.batch_size:
             if self.current_path_index < len(self.image_paths):
 
                 path = self.image_paths[self.current_path_index]
                 img = cv.imread(path)
                 if img is None:
                     raise ValueError(f"Cannot read image file: {path}")
-                self.current_batch.append(img)
+                batch.append(img)
                 self.last_img = img
                 self.current_path_index += 1
             else:
-                if not self.current_batch:
+                if not batch:
                     raise StopIteration()
                 break
-
-        batch = self.current_batch
-        self.current_batch = []
         return batch
