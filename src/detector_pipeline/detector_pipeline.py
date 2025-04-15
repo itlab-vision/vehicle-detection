@@ -129,9 +129,9 @@ class DetectionPipeline:
             = self.components.detector.detect(batch)
 
         if batch_idx < self.total_batches - 1 and len(batch_detects) == self.batch_size:
-            self.batch_timings.preprocess_time.append(preproc_time)
-            self.batch_timings.inference_time.append(inference_time)
-            self.batch_timings.postprocess_time.append(postproc_time)
+            self.batches_timings.preprocess_time.append(preproc_time)
+            self.batches_timings.inference_time.append(inference_time)
+            self.batches_timings.postprocess_time.append(postproc_time)
 
         self.components.visualizer.batch_start(
             batch_idx, preproc_time,
