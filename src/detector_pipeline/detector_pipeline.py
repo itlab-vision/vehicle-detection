@@ -13,8 +13,17 @@ import src.utils.data_reader as dr
 from src.gui_application.visualizer import BaseVisualizer
 
 @dataclass
-class BatchTiming():
-    """Structure for storing time metrics of a single batch"""
+class BatchesTimings():
+    """Data structure for storing batch processing timing metrics.
+    
+    Attributes:
+        preprocess_time (List[float]): 
+            List of preprocessing durations (in seconds) for each batch
+        inference_time (List[float]): 
+            List of model inference durations (in seconds) for each batch
+        postprocess_time (List[float]): 
+            List of postprocessing durations (in seconds) for each batch
+    """
     preprocess_time: list[float]
     inference_time: list[float]
     postprocess_time: list[float]
@@ -57,7 +66,7 @@ class DetectionPipeline:
             raise ValueError("Missing pipeline components")
 
         self.components = components
-        self.batch_timings = BatchTiming([], [], [])
+        self.batch_timings = BatchesTimings([], [], [])
         self.gtboxes = {}
         self.batch_size = 1
         self.current_batch_start_idx = 0
@@ -116,8 +125,8 @@ class DetectionPipeline:
         :param batch_idx: Index of the current batch
         :param batch: Image batch data in list of numpy array format
         """
-        detect_results = self.components.detector.detect(batch)
-        batch_detects, preproc_time, inference_time, postproc_time = detect_results
+        batch_detects, preproc_time, inference_time, postproc_time \
+            = self.components.detector.detect(batch)
 
         if batch_idx < self.total_batches - 1 and len(batch_detects) == self.batch_size:
             self.batch_timings.preprocess_time.append(preproc_time)
