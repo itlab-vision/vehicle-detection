@@ -66,7 +66,7 @@ class DetectionPipeline:
             raise ValueError("Missing pipeline components")
 
         self.components = components
-        self.batch_timings = BatchesTimings([], [], [])
+        self.batches_timings = BatchesTimings([], [], [])
         self.gtboxes = {}
         self.batch_size = 1
         self.current_batch_start_idx = 0
@@ -98,11 +98,11 @@ class DetectionPipeline:
         finally:
             self._finalize()
 
-    def get_batch_timings(self):
+    def get_batches_timings(self):
         """
         :return BatchTimimg: tuple of lists of all processed batches
         """
-        return self.batch_timings
+        return self.batches_timings
 
     def _initialize_processing(self, reader: FrameDataReader):
         """Prepare processing components and load ground truth if available."""
