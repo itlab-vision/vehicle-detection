@@ -122,7 +122,8 @@ class DetectionPipeline:
         :param detections: List of detected objects in format 
                                     (label, confidence, x1, y1, x2, y2)
         """
-        self.components.writer.write((frame_idx,) + det for det in detections)
+        for det in detections:
+            self.components.writer.write((frame_idx, *det))
 
     def _should_exit(self):
         """
