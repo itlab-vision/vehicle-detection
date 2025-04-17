@@ -5,14 +5,15 @@ Provides tools for collecting and analyzing vehicle detection pipeline performan
 Handles timing data aggregation and key performance indicators calculation.
 """
 
-from typing import List, Dict
+from typing import Dict
 from src.detector_pipeline.detector_pipeline import BatchesTimings
 
 
 class PerformanceCalculator:
     """Collects and processes timing data from detection pipeline batches."""
 
-    def calculate(self, total_frames: int, batch_size: int, time_data: BatchesTimings) -> (
+    @staticmethod
+    def calculate(total_frames: int, batch_size: int, time_data: BatchesTimings) -> (
             Dict)[str, float]:
         """
         Compute performance metrics from collected timing data.
@@ -31,9 +32,13 @@ class PerformanceCalculator:
         """
         total_time = (sum(time_data.preprocess_time) + sum(time_data.inference_time) +
                       sum(time_data.postprocess_time))
-        latency = self._median(sorted(time_data.inference_time))
         total_batches = len(time_data.inference_time)
-        total_inference = sum(time_data.inference_time)
+        total_inference_time = sum(time_data.inference_time)
+
+        if total_batches == 0:
+            latency = 0.0
+        else:
+            latency = sorted(time_data.inference_time)[total_batches // 2]
 
         return {
             'total_frames': total_frames,
@@ -41,22 +46,5 @@ class PerformanceCalculator:
             'latency': latency,
             'avg_time_of_single_pass': total_time / total_batches if total_batches > 0 else 0,
             'batch_fps': batch_size / latency if latency > 0 else 0,
-            'inference_fps': total_frames / total_inference if total_inference > 0 else 0
+            'inference_fps': total_frames / total_inference_time if total_inference_time > 0 else 0
         }
-
-    @staticmethod
-    def _median(data: List[float]) -> float:
-        """
-        Calculate median value from sorted data.
-
-        :param data: Pre-sorted list of timing values
-        :return: Median value in seconds
-        """
-        if not data:
-            return 0.0
-
-        total_elems = len(data)
-        mid = total_elems // 2
-        if total_elems % 2 == 0:
-            return (data[mid] + data[mid - 1]) / 2
-        return data[mid]
