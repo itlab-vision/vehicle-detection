@@ -5,63 +5,21 @@ Provides tools for collecting and analyzing vehicle detection pipeline performan
 Handles timing data aggregation and key performance indicators calculation.
 """
 
-import time
 from typing import List, Dict
+from src.detector_pipeline.detector_pipeline import BatchesTimings
 
 
 class PerformanceCalculator:
-    """
-    Collects and processes timing data from detection pipeline batches.
+    """Collects and processes timing data from detection pipeline batches."""
 
-    Attributes:
-        total_frames:       Total processed frames
-        batch_size:         Expected number of frames per full batch
-        valid_batches:      Count of complete batches processed
-        start_time:         Timestamp of calculator initialization
-        preproc_times:      List of preprocessing durations (seconds)
-        inference_times:    List of inference durations (seconds)
-        postproc_times:     List of postprocessing durations (seconds)
-    """
-
-    def __init__(self,
-                 total_frames: int,
-                 batch_size: int):
-        """Initialize performance calculator with batch configuration."""
-        self.total_frames = total_frames
-        self.batch_size = batch_size
-
-        self.valid_batches = 0
-        self.start_time = time.time()
-        self.preproc_times:     List[float] = []
-        self.inference_times:   List[float] = []
-        self.postproc_times:    List[float] = []
-
-    def reset(self):
-        """Reset calculator state while preserving total frames and batch size configuration."""
-        self.start_time = time.time()
-        self.preproc_times:     List[float] = []
-        self.inference_times:   List[float] = []
-        self.postproc_times:    List[float] = []
-
-    def add_batch(self,
-                  preproc: float,
-                  inference: float,
-                  postproc: float):
-        """
-        Record timing data for a processed batch.
-
-        :param preproc:     Preprocessing time in seconds
-        :param inference:   Model inference time in seconds
-        :param postproc:    Postprocessing time in seconds
-        """
-        self.preproc_times.append(preproc)
-        self.inference_times.append(inference)
-        self.postproc_times.append(postproc)
-        self.valid_batches += 1
-
-    def calculate(self) -> Dict[str, float]:
+    def calculate(self, total_frames: int, batch_size: int, time_data: BatchesTimings) -> (
+            Dict)[str, float]:
         """
         Compute performance metrics from collected timing data.
+
+        :param total_frames:    Total processed frames
+        :param batch_size:      Number of frames per full batch
+        :param time_data:        All batch processing timing metrics
 
         :return: Dictionary containing calculated metrics:
             - total_frames:             Total processed frames
@@ -71,18 +29,18 @@ class PerformanceCalculator:
             - batch_fps:                Frames per second (batch)
             - inference_fps:            Frames per second (inference)
         """
-        total_frames = self.valid_batches * self.batch_size
-        total_time = time.time() - self.start_time
-        latency = self._median(sorted(self.inference_times))
-        total_batches = len(self.inference_times)
-        total_inference = sum(self.inference_times)
+        total_time = (sum(time_data.preprocess_time) + sum(time_data.inference_time) +
+                      sum(time_data.postprocess_time))
+        latency = self._median(sorted(time_data.inference_time))
+        total_batches = len(time_data.inference_time)
+        total_inference = sum(time_data.inference_time)
 
         return {
             'total_frames': total_frames,
             'total_time': total_time,
             'latency': latency,
             'avg_time_of_single_pass': total_time / total_batches if total_batches > 0 else 0,
-            'batch_fps': self.batch_size / latency if latency > 0 else 0,
+            'batch_fps': batch_size / latency if latency > 0 else 0,
             'inference_fps': total_frames / total_inference if total_inference > 0 else 0
         }
 
