@@ -66,11 +66,12 @@ def config_main(parameters):
     :return PipelineComponents: Configured pipeline objects
     """
 
-    reader = FrameDataReader.create(
-        parameters['mode'],
-        (parameters['video_path'] or parameters['image_path']),
-        parameters['batch_size']
-    )
+    if parameters['mode'] == 'image':
+        reader = FrameDataReader.create(parameters['mode'], parameters['images_path'],
+                                        parameters['batch_size'])
+    else:   # parameters['mode'] == 'video'
+        reader = FrameDataReader.create(parameters['mode'], parameters['video_path'],
+                                        parameters['batch_size'])
 
     param_detect = { }
     param_detect['scale'] = parameters['scale']
