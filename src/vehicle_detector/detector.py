@@ -115,14 +115,18 @@ class VehicleDetectorOpenCV(Detector):
             raise ValueError('Incorrect format load.')
 
     def detect(self, image):
-
-        image_height, image_width, _ = image.shape
-        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size,
-                                    mean=self.mean, swapRB=self.swap_rb)
-
-        self.model.setInput(blob)
+        # Pre-process image using the adapter
+        image_transformed = self.adapter.pre_processing(image,
+                                                        scalefactor=self.scale,
+                                                        size=self.size,
+                                                        mean=self.mean,
+                                                        swapRB=self.swap_rb)
+        # Perform inference
+        self.model.setInput(image_transformed)
         boxes = self.model.forward()
 
+        # Post-process the detections using the adapter
+        image_height, image_width, _ = image.shape
         return self.adapter.post_processing(boxes, image_width, image_height)
 
 
@@ -151,13 +155,12 @@ class VehicleDetectorFasterRCNN(Detector):
         :param image: Input image as a NumPy array.
         :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
         """
-        # Convert the image to RGB and preprocess it
-        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
+        # Pre-process image using the adapter
+        image_transformed = self.adapter.pre_processing(image)
 
         # Perform inference
         with torch.no_grad():
-            outputs = self.model(image_tensor)
+            outputs = self.model(image_transformed)
 
         # Post-process the detections using the adapter
         image_height, image_width, _ = image.shape
