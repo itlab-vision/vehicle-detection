@@ -22,7 +22,7 @@ class Writer(ABC):
     """Abstract base class for different file format writers."""
 
     @abstractmethod
-    def write(self, data: tuple):
+    def write(self, data: list[tuple]):
         """
         Write a single data row to the output file.
 
@@ -71,7 +71,7 @@ class CsvWriter(Writer):
         self.output_path = output_path
         self.first_write = True
 
-    def write(self, data: tuple):
+    def write(self, data: list[tuple]):
         """
         Write tuple as CSV row. Automatically handles:
         - File opening on first write
@@ -83,7 +83,7 @@ class CsvWriter(Writer):
             self.first_write = False
             with open(self.output_path, mode, newline="", encoding="utf-8") as file:
                 writer = csv.writer(file)
-                writer.writerow(data)
+                writer.writerows(data)
         except OSError as e:
             raise OSError(f"File system error accessing {self.output_path}: {e}") from e
 
