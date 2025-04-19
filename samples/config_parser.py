@@ -27,7 +27,10 @@ def check_param_adapter(parameters):
     checking adapter parameters
     :return: parameters
     """
-    list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
+    list_adapter = [
+        'AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN',
+        'AdapterYOLOX', 'AdapterYOLOv8', 'AdapterSSDLite'
+    ]
     if parameters.get('adapter_name') not in list_adapter:
         raise ValueError('The adapter is specified incorrectly')
 

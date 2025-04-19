@@ -1,10 +1,10 @@
 - mode : image
   images_path: ./data/imgs_MOV03478
   groundtruth_path: ./layout/mov03478.csv
-  model_name: FasterRCNN
-  adapter_name: AdapterFasterRCNN
+  model_name: Yolov8
+  adapter_name: AdapterYOLOv8
   path_classes: ./models/COCO_V1_classes.txt
-  batch_size: 1
+  batch_size: 8
   confidence: 0.5
   nms_threshold: 0.4
   scale: 1.0      # placeholder
