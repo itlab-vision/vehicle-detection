@@ -111,9 +111,11 @@ def run_experiments(
 
 if __name__ == '__main__':
     DEFAULT_MODEL_CONFIGS = [
-        './configs/detector_config_file_fasterRCNN.yaml'
+        './configs/detector_config_file_fasterRCNN.yaml',
+        './configs/detector_config_SSDLite320_MobileNet_V3.yaml',
+        './configs/detector_config_yolov8.yaml'
     ]
-    DEFAULT_BATCH_SIZES = [1]
+    DEFAULT_BATCH_SIZES = [1, 2, 4, 8, 16, 32, 64]
 
     try:
         args = experiment_argument_parser()
