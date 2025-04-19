@@ -144,7 +144,7 @@ class AdapterOpenCV(Adapter, ABC):
     """
     def pre_processing(self, image: np.ndarray, **kwargs):
         """
-        Creates input blob for OpenCV models.
+        Prepares the image by resizing, normalizing, and channel swapping.
 
         :param image: Input image in BGR format
         :param kwargs: blobFromImage parameters:
@@ -152,15 +152,19 @@ class AdapterOpenCV(Adapter, ABC):
             - size: Spatial dimensions for output blob
             - mean: Mean subtraction values
             - swapRB: Flag for BGR to RGB conversion
-        :return: Formatted input blob
+        :return: Preprocessed image
         """
-        return cv.dnn.blobFromImage(
-            image=image,
-            scalefactor=kwargs['scalefactor'],
-            size=kwargs['size'],
-            mean=kwargs['mean'],
-            swapRB=kwargs['swapRB']
-        )
+        # Resize the image
+        image = cv.resize(image, kwargs['size'])
+
+        # Normalize the image (subtract mean values)
+        image = (image - np.array(kwargs['mean'])) * kwargs['scalefactor']
+
+        # Swap R and B channels if necessary
+        if kwargs['swapRB']:
+            image = image[:, :, ::-1]  # BGR -> RGB
+
+        return image
 
 
 class AdapterDetectionTask(AdapterOpenCV):

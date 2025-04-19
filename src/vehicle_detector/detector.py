@@ -116,13 +116,16 @@ class VehicleDetectorOpenCV(Detector):
 
     def detect(self, image):
         # Pre-process image using the adapter
-        image_transformed = self.adapter.pre_processing(image,
-                                                        scalefactor=self.scale,
-                                                        size=self.size,
-                                                        mean=self.mean,
-                                                        swapRB=self.swap_rb)
+        image_prepared = self.adapter.pre_processing(image,
+                                                     size=self.size,
+                                                     mean=self.mean,
+                                                     scalefactor=self.scale,
+                                                     swapRB=self.swap_rb)
+        # Convert preprocessed image to blob
+        blob = cv.dnn.blobFromImage(image_prepared)
+
         # Perform inference
-        self.model.setInput(image_transformed)
+        self.model.setInput(blob)
         boxes = self.model.forward()
 
         # Post-process the detections using the adapter
