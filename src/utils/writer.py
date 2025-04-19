@@ -62,7 +62,7 @@ class Writer(ABC):
 class CsvWriter(Writer):
     """CSV format writer implementation."""
 
-    def __init__(self, output_path: str):
+    def __init__(self, output_path: Path):
         """
         Initialize CSV writer.
 
