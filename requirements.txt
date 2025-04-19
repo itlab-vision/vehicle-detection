@@ -6,3 +6,5 @@ torch~=2.6.0
 torchvision~=0.21.0
 PyYAML~=6.0.2
 tqdm~=4.67.1
+pandas~=2.2.3
+matplotlib~=3.9.4
