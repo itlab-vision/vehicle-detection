@@ -52,23 +52,20 @@ class Adapter(ABC):
         self.interest_classes = interest_classes
 
     @abstractmethod
-    def pre_processing(self, image: np.ndarray, **kwargs):
+    def pre_processing(self, images: np.ndarray, **kwargs):
         """
         Prepares input image for model inference.
 
-        :param image: Input image in BGR format
+        :param images: Input image in BGR format
         :param kwargs: Additional preprocessing parameters
         :return: Processed input in model-specific format
         """
 
     @abstractmethod
-    def post_processing(self, output: list, image_width: int, image_height: int):
+    def post_processing(self, outputs: list, image_sizes: list):
         """
         Transforms output into a readable format.
 
-        :param output: Model output tensor (detections).
-        :param image_width: Original image width.
-        :param image_height: Original image height.
         :return: List of detections [class, x1, y1, x2, y2, confidence].
         """
 
@@ -96,26 +93,33 @@ class AdapterFasterRCNN(Adapter):
 
     Handles PyTorch-specific preprocessing and output formatting.
     """
-    def pre_processing(self, image: np.ndarray, **kwargs):
-        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
-        return image_tensor
+    def pre_processing(self, images: np.ndarray, **kwargs):
+        image_tensors = []
+        for image in images:
+            image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+            tensor = torchvision.transforms.functional.to_tensor(image_rgb)
+            image_tensors.append(tensor)
+        return image_tensors
 
-    def post_processing(self, output: list, image_width: int, image_height: int):
-        boxes = output[0]['boxes'].cpu().numpy()
-        confidences = output[0]['scores'].cpu().numpy()
-        class_labels = output[0]['labels'].cpu().numpy()
+    def post_processing(self, outputs: list, image_sizes: list):
+        batch_detections = []
+        for output, (_, _) in zip(outputs, image_sizes):
+            boxes = output['boxes'].cpu().numpy()
+            scores = output['scores'].cpu().numpy()
+            labels = output['labels'].cpu().numpy()
 
-        bboxes = []
+            detections = []
+            for box, score, label in zip(boxes, scores, labels):
+                if score >= self.conf:
+                    class_name = self.class_names[label]
+                    if class_name in self.interest_classes:
+                        detections.append(
+                            [class_name, int(box[0]), int(box[1]), int(box[2]), int(box[3]),
+                             float(score)])
 
-        for _, (box, confidence, label) in enumerate(zip(boxes, confidences, class_labels)):
-            if confidence > self.conf:
-                # Get class name based on label index
-                class_name = self.class_names[label.item()]
-                if class_name in self.interest_classes:
-                    bboxes.append([class_name, *[int(val) for val in box], confidence])
-
-        return self.__apply_nms(bboxes)
+            detections = self.__apply_nms(detections)
+            batch_detections.append(detections)
+        return batch_detections
 
     def __apply_nms(self, detections: list):
         """
@@ -136,6 +140,7 @@ class AdapterFasterRCNN(Adapter):
         return [detections[i] for i in indexes]
 
 
+# TODO
 class AdapterOpenCV(Adapter, ABC):
     """
     Base adapter class for OpenCV DNN models.
@@ -163,6 +168,7 @@ class AdapterOpenCV(Adapter, ABC):
         )
 
 
+# TODO
 class AdapterDetectionTask(AdapterOpenCV):
     """
     Adapter for standard OpenCV detection models.
@@ -191,6 +197,7 @@ class AdapterDetectionTask(AdapterOpenCV):
         return self._nms(boxes, confidences, classes_id)
 
 
+# TODO
 class AdapterYOLO(AdapterOpenCV):
     """
     Adapter for YOLO models.
@@ -220,6 +227,7 @@ class AdapterYOLO(AdapterOpenCV):
         return self._nms(boxes, confidences, classes_id)
 
 
+# TODO
 class AdapterYOLOTiny(AdapterOpenCV):
     """
     Adapter for YOLO-tiny models with grid-based output decoding.

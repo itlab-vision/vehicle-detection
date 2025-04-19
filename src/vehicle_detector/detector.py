@@ -15,7 +15,7 @@ Dependencies:
     :random: for synthetic detection generation
     :abc: for abstract base class support
 """
-
+import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 import random
@@ -49,12 +49,11 @@ class Detector(ABC):
         self.adapter = adapter
 
     @abstractmethod
-    def detect(self, image: np.ndarray):
+    def detect(self, images: list[np.ndarray]):
         """
         Process image and return detected objects.
 
-        :param image: Input image array (OpenCV format)
-        :return list: Detection tuples (label, x1, y1, x2, y2)
+        :param images: Input array of images (OpenCV format)
         """
 
     @staticmethod
@@ -97,6 +96,7 @@ class Detector(ABC):
         raise ValueError(f"Unsupported adapter: {adapter_name}")
 
 
+# TODO
 class VehicleDetectorOpenCV(Detector):
     """
     vehicle detection
@@ -148,66 +148,108 @@ class VehicleDetectorFasterRCNN(Detector):
             weights=torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
         self.model.eval()  # Set the model to evaluation mode
 
-    def detect(self, image: np.ndarray):
+    def detect(self, images: list[np.ndarray]):
         """
         Performs object detection on the input image.
 
-        :param image: Input image as a NumPy array.
+        :param images: Input list of images (image is a NumPy array).
         :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
         """
         # Pre-process image using the adapter
-        image_transformed = self.adapter.pre_processing(image)
+        start_time = time.time()
+        image_tensors = self.adapter.pre_processing(images)
+        preproc_time = time.time() - start_time
 
-        # Perform inference
+        # Inference
+        start_time = time.time()
         with torch.no_grad():
-            outputs = self.model(image_transformed)
+            outputs = self.model(image_tensors)
+        inference_time = time.time() - start_time
 
-        # Post-process the detections using the adapter
-        image_height, image_width, _ = image.shape
-        return self.adapter.post_processing(outputs, image_width, image_height)
+        # post-processing
+        start_time = time.time()
+        image_sizes = [(img.shape[1], img.shape[0]) for img in images]  # (width, height)
+        detections = self.adapter.post_processing(outputs, image_sizes)
+        postproc_time = time.time() - start_time
+
+        return detections, preproc_time, inference_time, postproc_time
 
 
+# TODO
 class FakeDetector(Detector):
     """
     Testing detector generating random bounding boxes.
-    
+
     Generates 0-7 random vehicle boxes per image with:
     - Random vehicle classes (car/bus/truck)
     - Random valid positions within image bounds
     - Reproducible results via seed control
     """
 
-    def __init__(self, seed: int = None):
+    def __init__(self,
+                 seed: int = None,
+                 time_ranges: tuple[tuple[float, float]] = ((0.01, 0.05),
+                                                            (0.08, 0.3),
+                                                            (0.01, 0.1))):
         """
+        Initialize fake detector with controlled randomness.
+
         :param seed: Random seed for reproducibility
+        :param time_ranges: Tuple of (preproc, inference, postproc) time ranges
         """
-        if seed is not None:
-            random.seed(seed)
+        self.rand = random.Random(seed)
+        self.time_ranges = time_ranges
+        self.classes = ["car", "bus", "truck"]
         super().__init__(None, None)
 
-    def detect(self, image: np.ndarray):
+    def detect(self, image: list[np.ndarray]):
         """
-        Generate synthetic detections for testing.
-        
-        :param image: Input image array (checks size validity)
-        :return: list: Detection tuples (class, x1, y1, x2, y2, confidence)
+        Process batch of images with simulated detection pipeline.
+
+        :param image: List of numpy arrays (HWC images)
+        :return: Tuple containing:
+            - List of detections per image
+            - Preprocessing time
+            - Inference time
+            - Postprocessing time
         """
-        if image is None or image.size == 0:
-            return []
-        height, width = image.shape[:2]
-        bboxes = []
-        num_boxes = random.randint(0, 5)
-        chance = random.random()
-        if chance < 0.5:
-            return []
-        for _ in range(num_boxes):
-            if width < 2 or height < 2:
+        preproc = self.rand.uniform(*self.time_ranges[0])
+        inference = self.rand.uniform(*self.time_ranges[1])
+        postproc = self.rand.uniform(*self.time_ranges[2])
+
+        batch_detections = []
+        for frame in image:
+            if frame is None or frame.size == 0:
+                batch_detections.append([])
                 continue
-            cl = random.choice(["car", "bus", "truck"])
-            x1 = random.randint(0, width - 2)
-            x2 = random.randint(x1 + 1, width - 1)
-            y1 = random.randint(0, height - 2)
-            y2 = random.randint(y1 + 1, height - 1)
-            confidence = random.random()
-            bboxes.append((cl, x1, y1, x2, y2, confidence))
-        return bboxes
+
+            height, width = frame.shape[:2]
+            detections = []
+
+            if self.rand.random() < 0.3:
+                batch_detections.append([])
+                continue
+
+            for _ in range(self.rand.randint(0, 5)):
+                try:
+                    x1 = self.rand.randint(0, width - 2)
+                    x2 = self.rand.randint(x1 + 1, width - 1)
+                    y1 = self.rand.randint(0, height - 2)
+                    y2 = self.rand.randint(y1 + 1, height - 1)
+                except ValueError:
+                    continue
+
+                detections.append((
+                    self.rand.choice(self.classes),
+                    x1, y1, x2, y2,
+                    round(self.rand.uniform(0.4, 0.99), 2)
+                ))
+
+            batch_detections.append(detections)
+
+        return (
+            batch_detections,
+            preproc,
+            inference,
+            postproc
+        )

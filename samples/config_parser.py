@@ -4,6 +4,7 @@ parsing a yaml file
 from pathlib import Path
 import yaml
 
+
 def check_param_paths(parameters):
     """
     checking path parameters
@@ -19,6 +20,7 @@ def check_param_paths(parameters):
         parameters.update({'path_config' : None})
 
     return parameters
+
 
 def check_param_adapter(parameters):
     """
@@ -40,6 +42,7 @@ def check_param_adapter(parameters):
         parameters['nms_threshold'] = float(parameters['nms_threshold'])
 
     return parameters
+
 
 def check_param_detector(parameters):
     """
@@ -67,6 +70,7 @@ def check_param_detector(parameters):
         parameters['swapRB'] = bool(parameters['swapRB'])
 
     return parameters
+
 
 def parse_yaml_file(yaml_file):
     """
@@ -113,8 +117,8 @@ def parse_yaml_file(yaml_file):
 
     list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name',
                 'path_classes', 'path_weights', 'path_config', 'confidence',
-                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 
-                  'groundtruth_path', 'write_path', 'silent_mode', 'adapter_name']
+                'nms_threshold', 'scale', 'size', 'mean', 'swapRB',
+                'groundtruth_path', 'write_path', 'batch_size', 'silent_mode', 'adapter_name']
 
     entered_arg = parameters.keys()
 
