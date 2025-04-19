@@ -149,23 +149,31 @@ class AdapterOpenCV(Adapter, ABC):
     """
     def pre_processing(self, images: list[np.ndarray], **kwargs):
         """
-        Creates input blob for OpenCV models supporting batch processing.
+        Prepares images for OpenCV DNN models by resizing, normalizing,
+        and optionally swapping channels.
 
-        :param images: List of input images in BGR format or single image
-        :param kwargs: blobFromImages parameters:
-            - scalefactor: Scale multiplier
-            - size: Spatial dimensions for output blob
-            - mean: Mean subtraction values
-            - swapRB: Flag for BGR to RGB conversion
-        :return: Formatted input blob
+        :param images: List of input images in BGR format
+        :param kwargs: Preprocessing parameters:
+            - scalefactor: Scale multiplier (e.g., 1/255.0 for normalization)
+            - size: Spatial dimensions for the output blob (e.g., (640, 640))
+            - mean: Mean subtraction values as a tuple (e.g., (0, 0, 0))
+            - swapRB: Boolean flag to convert BGR to RGB
+        :return: List of processed images (numpy arrays)
         """
-        return cv.dnn.blobFromImages(
-            images=images,
-            scalefactor=kwargs['scalefactor'],
-            size=kwargs['size'],
-            mean=kwargs['mean'],
-            swapRB=kwargs['swapRB']
-        )
+        res_images = []
+        for image in images:
+            tmp = cv.resize(image, kwargs['size'])
+
+            # Normalize the image (subtract mean values)
+            tmp = (tmp - np.array(kwargs['mean'])) * kwargs['scalefactor']
+
+            # Swap R and B channels if necessary
+            if kwargs['swapRB']:
+                tmp = tmp[:, :, ::-1]  # BGR -> RGB
+
+            res_images.append(tmp)
+
+        return res_images
 
 
 # need testing of batch processing implementation

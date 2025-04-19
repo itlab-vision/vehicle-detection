@@ -136,7 +136,7 @@ class VehicleDetectorOpenCV(Detector):
         else:
             raise ValueError('Incorrect format load.')
 
-    def detect(self, images):
+    def detect(self, images: list[np.ndarray]):
         # Pre-process image using the adapter
         start_time = time.time()
         image_transformed = self.adapter.pre_processing(images,
@@ -144,11 +144,12 @@ class VehicleDetectorOpenCV(Detector):
                                                         size=self.size,
                                                         mean=self.mean,
                                                         swapRB=self.swap_rb)
+        blobs = cv.dnn.blobFromImages(image_transformed)
         preproc_time = time.time() - start_time
 
         # Perform inference
         start_time = time.time()
-        self.model.setInput(image_transformed)
+        self.model.setInput(blobs)
         outputs = self.model.forward()
         inference_time = time.time() - start_time
 
