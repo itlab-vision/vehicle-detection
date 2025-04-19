@@ -5,7 +5,6 @@ Provides abstract and concrete implementations for visualizing object detection 
 Supports both GUI-based (OpenCV) and CLI-based visualization with progress tracking.
 """
 import time
-import sys
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 import cv2 as cv

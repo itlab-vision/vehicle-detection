@@ -69,9 +69,11 @@ def config_main(parameters):
     if parameters['mode'] == 'image':
         reader = FrameDataReader.create(parameters['mode'], parameters['images_path'],
                                         parameters['batch_size'])
-    else:   # parameters['mode'] == 'video'
+    elif parameters['mode'] == 'video':
         reader = FrameDataReader.create(parameters['mode'], parameters['video_path'],
                                         parameters['batch_size'])
+    else:
+        raise ValueError(f"Unsupported mode: '{parameters['mode']}'. Expected 'image' or 'video'")
 
     param_detect = { }
     param_detect['scale'] = parameters['scale']
