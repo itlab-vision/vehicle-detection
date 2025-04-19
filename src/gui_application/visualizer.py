@@ -236,14 +236,13 @@ class CLIVisualizer(BaseVisualizer):
         """Update console progress display."""
 
         elapsed = time.time() - self.start_time
-        sys.stdout.write(
+        print(
             f"\rProcessed {self.current_batch+1}/{self.total_batches} batches | "
             f"Elapsed: {elapsed:.1f}s | "
             f"Times (P/I/Po): {self.processing_times['preproc']:.4f}/"
             f"{self.processing_times['inference']:.4f}/"
             f"{self.processing_times['postproc']:.4f}s"
         )
-        sys.stdout.flush()
 
     def visualize_frame(self, frame_idx: int, frame: numpy.ndarray,
                      detections: list, ground_truth: list = None):
@@ -253,7 +252,6 @@ class CLIVisualizer(BaseVisualizer):
         for det in detections:
             label, x1, y1, x2, y2, conf = det
             print(f"\t{label}: ({x1},{y1})-({x2},{y2}) @ {conf:.2f}")
-        print()
 
     def _print_batch_header(self, batch_idx: int):
         """Internal: Print batch separator."""
