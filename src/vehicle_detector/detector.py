@@ -24,6 +24,7 @@ import numpy as np
 import torch
 import torchvision
 from torchvision.models import detection
+import onnxruntime as rt
 from ultralytics import YOLO
 
 import src.vehicle_detector.adapter as ad
@@ -108,6 +109,11 @@ class Detector(ABC):
         elif adapter_name == 'AdapterSSDLite':
             detector = VehicleDetectorSSDLite(param_detect,
                                               ad.AdapterSSDLite(param_adapter['confidence'],
+                                                                  param_adapter['nms_threshold'],
+                                                                  class_names))
+        elif adapter_name == 'AdapterYOLOv4':
+            detector = VehicleDetectorYOLOv4(paths, param_detect,
+                                             ad.AdapterYOLOv4(param_adapter['confidence'],
                                                                   param_adapter['nms_threshold'],
                                                                   class_names))
         elif adapter_name == "fake":
@@ -275,6 +281,39 @@ class VehicleDetectorSSDLite(Detector):
         start_time = time.time()
         image_sizes = [(img.shape[1], img.shape[0]) for img in images]
         detections = self.adapter.post_processing(outputs, image_sizes)
+        postproc_time = time.time() - start_time
+
+        return detections, preproc_time, inference_time, postproc_time
+
+
+class VehicleDetectorYOLOv4(Detector):
+    """
+    Vehicle detector using YOLOv4
+    """
+
+    def __init__(self, paths, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.path_anchors = paths['path_anchors']
+        self.model = rt.InferenceSession(paths['path_weights'])
+
+    def detect(self, images: list[np.ndarray]):
+        start_time = time.time()
+        preprocessed = self.adapter.pre_processing(images,
+                                                   size=self.size)
+        preproc_time = time.time() - start_time
+
+        start_time = time.time()
+        outputs = self.model.get_outputs()
+        output_names = list(map(lambda output: output.name, outputs))
+        input_name = self.model.get_inputs()[0].name
+
+        outputs = self.model.run(output_names, {input_name: preprocessed})
+        inference_time = time.time() - start_time
+
+        start_time = time.time()
+        image_sizes = [(img.shape[1], img.shape[0]) for img in images]
+        detections = self.adapter.post_processing(outputs, image_sizes,
+                                                  path_anchors=self.path_anchors)
         postproc_time = time.time() - start_time
 
         return detections, preproc_time, inference_time, postproc_time

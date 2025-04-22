@@ -87,7 +87,8 @@ def config_main(parameters: dict):
 
     paths = {
         'path_weights': parameters['path_weights'],
-        'path_config': parameters['path_config']
+        'path_config': parameters['path_config'],
+        'path_anchors': parameters['path_anchors']
     }
 
     detector = Detector.create(parameters['adapter_name'], parameters['path_classes'],

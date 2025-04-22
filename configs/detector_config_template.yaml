@@ -7,6 +7,7 @@
   path_classes: 	# The path to the file with the names of the classes for which the model was trained
   path_weights: 	# The path to the model weights file
   path_config: 		# The path to the model description file
+  path_anchors:
   write_path: 		# The path to the output file with detections
   batch_size:		# The batch size for inference
   confidence: 		# Desired detection accuracy

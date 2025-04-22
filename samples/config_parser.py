@@ -19,6 +19,9 @@ def check_param_paths(parameters):
     if parameters.get('path_config') is None:
         parameters.update({'path_config' : None})
 
+    if parameters.get('path_anchors') is None:
+        parameters.update({'path_anchors': None})
+
     return parameters
 
 
@@ -29,7 +32,7 @@ def check_param_adapter(parameters):
     """
     list_adapter = [
         'AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN',
-        'AdapterYOLOX', 'AdapterYOLOv8', 'AdapterSSDLite'
+        'AdapterYOLOX', 'AdapterYOLOv8', 'AdapterSSDLite', 'AdapterYOLOv4'
     ]
     if parameters.get('adapter_name') not in list_adapter:
         raise ValueError('The adapter is specified incorrectly')
@@ -121,7 +124,8 @@ def parse_yaml_file(yaml_file):
     list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name',
                 'path_classes', 'path_weights', 'path_config', 'confidence',
                 'nms_threshold', 'scale', 'size', 'mean', 'swapRB',
-                'groundtruth_path', 'write_path', 'batch_size', 'silent_mode', 'adapter_name']
+                'groundtruth_path', 'write_path', 'batch_size', 'silent_mode', 'adapter_name',
+                'path_anchors']
 
     entered_arg = parameters.keys()
 

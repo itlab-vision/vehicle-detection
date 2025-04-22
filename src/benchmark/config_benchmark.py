@@ -63,13 +63,14 @@ def config_pipeline_components(
 
     paths = {
         'path_weights': config_params['path_weights'],
-        'path_config': config_params['path_config']
+        'path_config': config_params['path_config'],
+        'path_anchors': config_params['path_anchors']
     }
 
     detector = Detector.create(config_params['adapter_name'], config_params['path_classes'],
                                paths, param_adapter, param_detect)
 
-    visualizer = BaseVisualizer.create(silent=True)
+    visualizer = BaseVisualizer.create(silent=False)
     writer = Writer.create(output_path)
     gt_reader = CsvGTReader(exp_params.groundtruth_path)
 
