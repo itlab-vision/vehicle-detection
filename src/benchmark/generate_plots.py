@@ -28,6 +28,9 @@ def generate_perf_plots(df: pd.DataFrame, output_dir: str):
         plt.plot(model_data['batch_size'], model_data['inference_fps'],
                  marker='o', linestyle='--', label=model)
 
+        for x, y in zip(model_data['batch_size'], model_data['inference_fps']):
+            plt.text(x, y + 0.02, f'{y:.1f}', ha='center', va='bottom', fontsize=8)
+
     plt.title('Inference FPS vs Batch Size')
     plt.xlabel('Batch Size')
     plt.ylabel('FPS')
@@ -48,12 +51,23 @@ def generate_quality_plot(df: pd.DataFrame, output_dir: str):
 
     # Aggregate accuracy by model
     accuracy_data = df.groupby('model')['accuracy_map'].mean()
+    models = accuracy_data.index.tolist()
+    accuracies = accuracy_data.values
 
-    accuracy_data.plot(kind='bar', color='skyblue')
+    bars = plt.bar(range(len(models)), accuracies, color='skyblue')
     plt.title('Model Accuracy Comparison')
     plt.xlabel('Model')
     plt.ylabel('Accuracy')
     plt.ylim(0, 1)
     plt.grid(axis='y')
+    plt.xticks(ticks=range(len(models)), labels=models, rotation=90, ha='center')
+
+    # Добавляем подписи над столбцами
+    for i, bar in enumerate(bars):
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, height - 0.02,
+                 f'{height:.2f}', ha='center', va='top', fontsize=9, color='black')
+
+    plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'accuracy_comparison.png'))
     plt.close()

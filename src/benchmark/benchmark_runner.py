@@ -114,6 +114,7 @@ if __name__ == '__main__':
         './configs/detector_config_file_fasterRCNN.yaml',
         './configs/yolo/detector_config_yolov4.yaml',
         './configs/yolo/detector_config_yolov11s.yaml',
+        './configs/yolo/detector_config_yolov12s.yaml',
         './configs/rtdetr/detector_config_rtdetr-l.yaml',
     ]
     DEFAULT_BATCH_SIZES = [1, 2, 4, 8, 16]
