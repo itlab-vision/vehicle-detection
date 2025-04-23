@@ -119,7 +119,8 @@ class Detector(ABC):
             'AdapterSSDLite': lambda:
                 VehicleDetectorSSDLite(param_detect,
                                        make_adapter(ad.AdapterSSDLite)),
-            'fake': FakeDetector()
+            'fake': lambda:
+                FakeDetector()
         }
 
         if adapter_name not in config:
