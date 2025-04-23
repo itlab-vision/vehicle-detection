@@ -11,7 +11,7 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 
-from samples import config_parser
+from samples.config_parser import parse_yaml_file
 from src.detector_pipeline.detector_pipeline import DetectionPipeline
 from src.accuracy_checker.accuracy_checker import AccuracyCalculator
 from src.perf_calculator.perf_calculator import PerformanceCalculator
@@ -69,7 +69,7 @@ def run_experiments(
     for model_config in tqdm(model_config_paths, desc='Models configs'):
         for batch_size in tqdm(batch_sizes, desc='Batch sizes', leave=False):
             # Setup pipeline
-            config_params = config_parser.parse_yaml_file(model_config)
+            config_params = parse_yaml_file(model_config)
             components = config_pipeline_components(config_params,
                                                     batch_size,
                                                     template_file,

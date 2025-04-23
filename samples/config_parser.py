@@ -30,20 +30,13 @@ def check_param_adapter(parameters):
     checking adapter parameters
     :return: parameters
     """
-    list_adapter = [
-        'AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN',
-        'AdapterYOLOX', 'AdapterUltralytics', 'AdapterSSDLite',
-    ]
-    if parameters.get('adapter_name') not in list_adapter:
-        raise ValueError('The adapter is specified incorrectly')
-
     if parameters.get('confidence') is None:
-        parameters.update({'confidence' : 0.3})
+        parameters.update({'confidence': 0.3})
     else:
         parameters['confidence'] = float(parameters['confidence'])
 
     if parameters.get('nms_threshold') is None:
-        parameters.update({'nms_threshold' : 0.4})
+        parameters.update({'nms_threshold': 0.4})
     else:
         parameters['nms_threshold'] = float(parameters['nms_threshold'])
 
