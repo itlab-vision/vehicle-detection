@@ -29,7 +29,7 @@ def generate_perf_plots(df: pd.DataFrame, output_dir: str):
                  marker='o', linestyle='--', label=model)
 
         for x, y in zip(model_data['batch_size'], model_data['inference_fps']):
-            plt.text(x, y + 0.02, f'{y:.1f}', ha='center', va='bottom', fontsize=8)
+            plt.text(x, y + 0.03, f'{y:.1f}', ha='center', va='bottom', fontsize=8)
 
     plt.title('Inference FPS vs Batch Size')
     plt.xlabel('Batch Size')

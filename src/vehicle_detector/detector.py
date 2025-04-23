@@ -15,10 +15,13 @@ Dependencies:
     :random: for synthetic detection generation
     :abc: for abstract base class support
 """
+from urllib.parse import urlparse
 import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 import random
+import requests
+
 import cv2 as cv
 import numpy as np
 import torch
@@ -64,60 +67,65 @@ class Detector(ABC):
     def create(adapter_name, path_classes, paths, param_adapter, param_detect):
         """
         Factory method for creating detector instances.
-        
+
         :return: Detector: Concrete subclass instance
         :raise: ValueError: For unsupported mode specifications
         """
-        path_classes = Path(path_classes).absolute()
-        if path_classes.exists():
-            with open(path_classes, 'r', encoding='utf-8') as f:
-                class_names = f.read().split('\n')
-        else:
-            raise ValueError('Incorrect path to classes.')
+        def load_classes(path):
+            parsed = urlparse(path)
+            if parsed.scheme in ('http', 'https'):
+                response = requests.get(path, timeout=2)
+                if response.status_code == 200:
+                    print(f"[INFO] Successfully loaded class names from URL: {path}")
+                    return response.text.strip().split('\n')
 
-        detector = None
-        if adapter_name == 'AdapterYOLO':
-            detector = VehicleDetectorOpenCV('Darknet', paths, param_detect,
-                                         ad.AdapterYOLO(param_adapter['confidence'],
-                                                        param_adapter['nms_threshold'],
-                                                        class_names))
-        elif adapter_name == 'AdapterYOLOTiny':
-            detector = VehicleDetectorOpenCV('ONNX', paths, param_detect,
-                                         ad.AdapterYOLOTiny(param_adapter['confidence'],
-                                                            param_adapter['nms_threshold'],
-                                                            class_names))
-        elif adapter_name == 'AdapterYOLOX':
-            detector = VehicleDetectorOpenCV('ONNX', paths, param_detect,
-                                         ad.AdapterYOLOX(param_adapter['confidence'],
-                                                         param_adapter['nms_threshold'],
-                                                         class_names))
-        elif adapter_name == 'AdapterDetectionTask':
-            detector = VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
-                                         ad.AdapterDetectionTask(param_adapter['confidence'],
-                                                                 param_adapter['nms_threshold'],
-                                                                 class_names))
-        elif adapter_name == 'AdapterFasterRCNN':
-            detector = VehicleDetectorFasterRCNN(param_detect,
-                                             ad.AdapterFasterRCNN(param_adapter['confidence'],
-                                                                  param_adapter['nms_threshold'],
-                                                                  class_names))
-        elif adapter_name == 'AdapterUltralytics':
-            detector = VehicleDetectorUltralytics(paths, param_detect,
-                                                  ad.AdapterUltralytics(
-                                                      param_adapter['confidence'],
-                                                      param_adapter['nms_threshold'],
-                                                      class_names))
-        elif adapter_name == 'AdapterSSDLite':
-            detector = VehicleDetectorSSDLite(param_detect,
-                                              ad.AdapterSSDLite(param_adapter['confidence'],
-                                                                param_adapter['nms_threshold'],
-                                                                class_names))
-        elif adapter_name == "fake":
-            detector = FakeDetector()
-        else:
+                raise ValueError(f"Failed to load class file from URL: "
+                                 f"{path} (status code {response.status_code})")
+
+            # Path to file with class labels
+            path = Path(path).absolute()
+            if path.exists():
+                with open(path, 'r', encoding='utf-8') as f:
+                    return f.read().strip().split('\n')
+
+            raise ValueError(f"Incorrect path to class file: {path}")
+
+        def make_adapter(adapter_class):
+            return adapter_class(param_adapter['confidence'],
+                                 param_adapter['nms_threshold'],
+                                 class_names)
+
+        class_names = load_classes(path_classes)
+
+        config = {
+            'AdapterYOLO': lambda:
+                VehicleDetectorOpenCV('Darknet', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLO)),
+            'AdapterYOLOTiny': lambda:
+                VehicleDetectorOpenCV('ONNX', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLOTiny)),
+            'AdapterYOLOX': lambda:
+                VehicleDetectorOpenCV('ONNX', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLOX)),
+            'AdapterDetectionTask': lambda:
+                VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
+                                      make_adapter(ad.AdapterDetectionTask)),
+            'AdapterFasterRCNN': lambda:
+                VehicleDetectorFasterRCNN(param_detect,
+                                          make_adapter(ad.AdapterFasterRCNN)),
+            'AdapterUltralytics': lambda:
+                VehicleDetectorUltralytics(paths, param_detect,
+                                           make_adapter(ad.AdapterUltralytics)),
+            'AdapterSSDLite': lambda:
+                VehicleDetectorSSDLite(param_detect,
+                                       make_adapter(ad.AdapterSSDLite)),
+            'fake': FakeDetector()
+        }
+
+        if adapter_name not in config:
             raise ValueError(f"Unsupported adapter: {adapter_name}")
 
-        return detector
+        return config[adapter_name]()
 
 
 # need testing of batch processing implementation

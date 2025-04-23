@@ -117,7 +117,7 @@ if __name__ == '__main__':
         './configs/yolo/detector_config_yolov12s.yaml',
         './configs/rtdetr/detector_config_rtdetr-l.yaml',
     ]
-    DEFAULT_BATCH_SIZES = [1]
+    DEFAULT_BATCH_SIZES = [1, 2, 4, 8, 16]
 
     try:
         args = experiment_argument_parser()

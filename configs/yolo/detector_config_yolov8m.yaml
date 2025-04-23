@@ -2,10 +2,6 @@
 # This configuration uses class labels from:
 # https://github.com/amikelive/coco-labels/blob/master/
 #
-# Ensure that the following files are downloaded from the repo above:
-# - coco-labels-2014_2017.txt
-# and placed in ./models/
-#
 # Alternatively, specify custom paths to your own version of
 # label file.
 # ------------------------------------------------------------
@@ -16,7 +12,7 @@
   groundtruth_path: ./layout/mov03478.csv
   model_name: Yolov8m
   adapter_name: AdapterUltralytics
-  path_classes: ./models/coco-labels-2014_2017.txt
+  path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
   path_weights: yolov8m.pt
   batch_size: 8
   confidence: 0.5

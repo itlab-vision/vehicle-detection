@@ -7,7 +7,6 @@
 #   https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/yolox-tiny
 #
 # Ensure that the following files are downloaded from the repo above:
-# - coco-labels-2014_2017.txt
 # - yolox-tiny.onnx (converted from `yolox_tiny.pth`)
 # and placed in ./models/yolox-tiny/
 #
@@ -23,7 +22,7 @@
   model_name: yolox_tiny
   adapter_name: AdapterYOLOX
   path_weights: ./models/yolox-tiny/yolox-tiny.onnx
-  path_classes: ./models/coco-labels-2014_2017.txt
+  path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
   batch_size: 1
   confidence: 0.5
   nms_threshold: 0.45
