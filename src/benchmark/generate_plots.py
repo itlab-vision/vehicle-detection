@@ -63,9 +63,9 @@ def generate_quality_plot(df: pd.DataFrame, output_dir: str):
     plt.xticks(ticks=range(len(models)), labels=models, rotation=90, ha='center')
 
     # Добавляем подписи над столбцами
-    for i, bar in enumerate(bars):
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, height - 0.02,
+    for _, elem in enumerate(bars):
+        height = elem.get_height()
+        plt.text(elem.get_x() + elem.get_width() / 2, height - 0.02,
                  f'{height:.2f}', ha='center', va='top', fontsize=9, color='black')
 
     plt.tight_layout()

@@ -102,20 +102,16 @@ class Detector(ABC):
                                                                   param_adapter['nms_threshold'],
                                                                   class_names))
         elif adapter_name == 'AdapterUltralytics':
-            detector = VehicleDetectorYoloUltralytics(paths, param_detect,
-                                                      ad.AdapterUltralytics(param_adapter['confidence'],
-                                                                                param_adapter['nms_threshold'],
-                                                                                class_names))
+            detector = VehicleDetectorUltralytics(paths, param_detect,
+                                                  ad.AdapterUltralytics(
+                                                      param_adapter['confidence'],
+                                                      param_adapter['nms_threshold'],
+                                                      class_names))
         elif adapter_name == 'AdapterSSDLite':
             detector = VehicleDetectorSSDLite(param_detect,
                                               ad.AdapterSSDLite(param_adapter['confidence'],
                                                                 param_adapter['nms_threshold'],
                                                                 class_names))
-        elif adapter_name == 'AdapterYOLOv4':
-            detector = VehicleDetectorYOLOv4(paths, param_detect,
-                                             ad.AdapterYOLOv4(param_adapter['confidence'],
-                                                              param_adapter['nms_threshold'],
-                                                              class_names))
         elif adapter_name == "fake":
             detector = FakeDetector()
         else:
@@ -213,7 +209,7 @@ class VehicleDetectorFasterRCNN(Detector):
         return detections, preproc_time, inference_time, postproc_time
 
 
-class VehicleDetectorYoloUltralytics(Detector):
+class VehicleDetectorUltralytics(Detector):
     """
     Vehicle detector based on YOLO and RTDETR ONNX using the Ultralytics API.
     """
@@ -229,7 +225,7 @@ class VehicleDetectorYoloUltralytics(Detector):
         elif 'rtdetr' in paths['path_weights']:
             self.model = RTDETR(paths['path_weights'])
         else:
-            raise "VehicleDetectorYoloUltralytics invalid path_weights"
+            raise ValueError("VehicleDetectorYoloUltralytics invalid path_weights")
 
     def detect(self, images: list[np.ndarray]):
         """
