@@ -63,15 +63,17 @@ def config_main(parameters: dict):
     Configure pipeline components.
 
     :param parameters: Parsed command-line arguments
-    :return PipelineComponents: Configured pipeline objects with GUI visualizer
+    :return PipelineComponents: Configured pipeline objects
     """
 
     if parameters['mode'] == 'image':
         reader = FrameDataReader.create(parameters['mode'], parameters['images_path'],
                                         parameters['batch_size'])
-    else:   # parameters['mode'] == 'video'
+    elif parameters['mode'] == 'video':
         reader = FrameDataReader.create(parameters['mode'], parameters['video_path'],
                                         parameters['batch_size'])
+    else:
+        raise ValueError(f"Unsupported mode: '{parameters['mode']}'. Expected 'image' or 'video'")
 
     param_detect = {
         'scale': parameters['scale'],
