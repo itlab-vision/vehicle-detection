@@ -34,6 +34,8 @@ import cv2 as cv
 import torch
 import torchvision
 from scipy import special
+from ultralytics.data.augment import LetterBox
+from ultralytics.utils import ops
 
 
 class Adapter(ABC):
@@ -71,6 +73,7 @@ class Adapter(ABC):
         """
         Transforms output into a readable format.
 
+        :param image_sizes: list[(width, height)]
         :return: List of detections [class, x1, y1, x2, y2, confidence].
         """
 
@@ -106,7 +109,7 @@ class AdapterFasterRCNN(Adapter):
             image_tensors.append(tensor)
         return image_tensors
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for output, (_, _) in zip(outputs, image_sizes):
             boxes = output['boxes'].cpu().numpy()
@@ -116,7 +119,7 @@ class AdapterFasterRCNN(Adapter):
             detections = []
             for box, score, label in zip(boxes, scores, labels):
                 if score >= self.conf:
-                    class_name = self.class_names[label]
+                    class_name = self.class_names[label - 1]
                     if class_name in self.interest_classes:
                         detections.append(
                             [class_name, int(box[0]), int(box[1]), int(box[2]), int(box[3]),
@@ -186,7 +189,7 @@ class AdapterDetectionTask(AdapterOpenCV):
     Adapter for standard OpenCV detection models.
     """
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for output, (img_w, img_h) in zip(outputs, image_sizes):
             batch_detections.append(self._process_single_output(output, img_w, img_h))
@@ -237,7 +240,7 @@ class AdapterYOLO(AdapterOpenCV):
     Adapter for YOLO models.
     """
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for output, (img_w, img_h) in zip(outputs, image_sizes):
             batch_detections.append(self._process_single_output(output[0], img_w, img_h))
@@ -301,7 +304,7 @@ class AdapterYOLOTiny(AdapterOpenCV):
         outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
         return outputs
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for output, (img_w, img_h) in zip(outputs, image_sizes):
             batch_detections.append(self._process_single_output(output[0], img_w, img_h))
@@ -346,7 +349,7 @@ class AdapterYOLOTiny(AdapterOpenCV):
         return self._nms(boxes, confidences, classes)
 
 
-# working only on batch size 1
+# Working only on batch size 1
 class AdapterYOLOX(AdapterOpenCV):
     """
     Adapter for YOLOX models with batch processing support.
@@ -376,7 +379,7 @@ class AdapterYOLOX(AdapterOpenCV):
         outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
         return outputs
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         input_size = (416, 416)
 
@@ -408,7 +411,7 @@ class AdapterYOLOX(AdapterOpenCV):
         img_w, img_h = image_dimensions  # Unpack image dimensions
 
         for bbox, class_id, confidence in zip(bboxes, class_ids, confidences):
-            class_name = self.class_names[class_id + 1]
+            class_name = self.class_names[class_id]
             if confidence < self.conf or class_name not in self.interest_classes:
                 continue
 
@@ -429,14 +432,14 @@ class AdapterYOLOX(AdapterOpenCV):
         return x0, y0, x1, y1
 
 
-class AdapterYOLOv8(Adapter):
+class AdapterUltralytics(Adapter):
     """
-    Adapter for YOLOv8 using the Ultralytics ONNX runtime with batch support.
+    Adapter for YOLO and RT-DETR using the Ultralytics ONNX runtime with batch support.
     """
     def pre_processing(self, images: list, **kwargs):
         return images
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for result in outputs:
             detections = self._process_result(result)
@@ -452,7 +455,7 @@ class AdapterYOLOv8(Adapter):
             boxes.conf.cpu().numpy(),
             boxes.cls.cpu().numpy()
         ):
-            class_name = self.class_names[int(cls_id) + 1]
+            class_name = self.class_names[int(cls_id)]
             if conf < self.conf:
                 continue
             if self.interest_classes and class_name not in self.interest_classes:
@@ -491,7 +494,7 @@ class AdapterSSDLite(Adapter):
         ])
         return torch.stack([transform(img) for img in images])
 
-    def post_processing(self, outputs: list, image_sizes: list):
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
         batch_detections = []
         for output, img_dim in zip(outputs, image_sizes):
             detections = self._process_output(output, img_dim)
@@ -516,7 +519,7 @@ class AdapterSSDLite(Adapter):
         if class_id >= len(self.class_names):
             return None
 
-        class_name = self.class_names[class_id]
+        class_name = self.class_names[class_id - 1]
         if self.interest_classes and class_name not in self.interest_classes:
             return None
 
@@ -573,7 +576,6 @@ class AdapterYOLOv4(Adapter):
             res_images.append(image_padded)
 
         result = np.stack(res_images, axis=0)
-        print("Final batch shape:", result.shape)
         return result
 
     def post_processing(self, outputs: list, image_sizes: list, **kwargs):

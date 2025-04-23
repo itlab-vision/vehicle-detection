@@ -10,16 +10,18 @@
 # label file.
 # ------------------------------------------------------------
 
+
 - mode : image
   images_path: ./data/imgs_MOV03478
   groundtruth_path: ./layout/mov03478.csv
-  model_name: SSDLite
-  adapter_name: AdapterSSDLite
+  model_name: RT-DETR X
+  adapter_name: AdapterUltralytics
   path_classes: ./models/coco-labels-2014_2017.txt
+  path_weights: rtdetr-x.pt
   batch_size: 1
   confidence: 0.5
   nms_threshold: 0.4
   scale: 1.0      # placeholder
-  size: 312 312   # placeholder
+  size: 640 640
   mean:           # placeholder
   swapRB:         # placeholder

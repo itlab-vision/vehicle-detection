@@ -70,7 +70,7 @@ def config_pipeline_components(
     detector = Detector.create(config_params['adapter_name'], config_params['path_classes'],
                                paths, param_adapter, param_detect)
 
-    visualizer = BaseVisualizer.create(silent=False)
+    visualizer = BaseVisualizer.create(silent=True)
     writer = Writer.create(output_path)
     gt_reader = CsvGTReader(exp_params.groundtruth_path)
 

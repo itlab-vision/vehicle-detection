@@ -25,7 +25,7 @@ import torch
 import torchvision
 from torchvision.models import detection
 import onnxruntime as rt
-from ultralytics import YOLO
+from ultralytics import YOLO, RTDETR
 
 import src.vehicle_detector.adapter as ad
 
@@ -101,21 +101,21 @@ class Detector(ABC):
                                              ad.AdapterFasterRCNN(param_adapter['confidence'],
                                                                   param_adapter['nms_threshold'],
                                                                   class_names))
-        elif adapter_name == 'AdapterYOLOv8':
-            detector = VehicleDetectorYOLOv8(param_detect,
-                                             ad.AdapterYOLOv8(param_adapter['confidence'],
-                                                                  param_adapter['nms_threshold'],
-                                                                  class_names))
+        elif adapter_name == 'AdapterUltralytics':
+            detector = VehicleDetectorYoloUltralytics(paths, param_detect,
+                                                      ad.AdapterUltralytics(param_adapter['confidence'],
+                                                                                param_adapter['nms_threshold'],
+                                                                                class_names))
         elif adapter_name == 'AdapterSSDLite':
             detector = VehicleDetectorSSDLite(param_detect,
                                               ad.AdapterSSDLite(param_adapter['confidence'],
-                                                                  param_adapter['nms_threshold'],
-                                                                  class_names))
+                                                                param_adapter['nms_threshold'],
+                                                                class_names))
         elif adapter_name == 'AdapterYOLOv4':
             detector = VehicleDetectorYOLOv4(paths, param_detect,
                                              ad.AdapterYOLOv4(param_adapter['confidence'],
-                                                                  param_adapter['nms_threshold'],
-                                                                  class_names))
+                                                              param_adapter['nms_threshold'],
+                                                              class_names))
         elif adapter_name == "fake":
             detector = FakeDetector()
         else:
@@ -213,24 +213,23 @@ class VehicleDetectorFasterRCNN(Detector):
         return detections, preproc_time, inference_time, postproc_time
 
 
-class VehicleDetectorYOLOv8(Detector):
+class VehicleDetectorYoloUltralytics(Detector):
     """
-    Vehicle detector based on YOLOv8 ONNX using the Ultralytics API.
+    Vehicle detector based on YOLO and RTDETR ONNX using the Ultralytics API.
     """
 
-    def __init__(self, param_detect, adapter):
+    def __init__(self, paths, param_detect, adapter):
         """
-        Initializes the YOLOv8 vehicle detector.
-
         :param param_detect: Dictionary with detection parameters.
         :param adapter: Adapter for pre/post-processing.
         """
         super().__init__(param_detect, adapter)
-        self.model = YOLO("yolov8n.pt")
-        # self.model = YOLO("yolov8s.pt")  # Small
-        # self.model = YOLO("yolov8m.pt")  # Medium
-        # self.model = YOLO("yolov8l.pt")  # Large
-        # self.model = YOLO("yolov8x.pt")  # Extra Large
+        if 'yolo' in paths['path_weights']:
+            self.model = YOLO(paths['path_weights'])
+        elif 'rtdetr' in paths['path_weights']:
+            self.model = RTDETR(paths['path_weights'])
+        else:
+            raise "VehicleDetectorYoloUltralytics invalid path_weights"
 
     def detect(self, images: list[np.ndarray]):
         """
@@ -241,7 +240,8 @@ class VehicleDetectorYOLOv8(Detector):
         """
         # Pre-processing
         start_time = time.time()
-        preprocessed = self.adapter.pre_processing(images)
+        preprocessed = self.adapter.pre_processing(images,
+                                                  size=self.size)
         preproc_time = time.time() - start_time
 
         # Inference

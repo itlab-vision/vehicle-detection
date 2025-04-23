@@ -1,3 +1,5 @@
+
+
 - mode : image
   images_path: ../data/imgs_MOV03478
   groundtruth_path: ../layout/mov03478.csv

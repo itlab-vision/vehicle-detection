@@ -10,13 +10,15 @@
 # label file.
 # ------------------------------------------------------------
 
+
 - mode : image
   images_path: ./data/imgs_MOV03478
   groundtruth_path: ./layout/mov03478.csv
-  model_name: SSDLite
-  adapter_name: AdapterSSDLite
+  model_name: Yolov8n
+  adapter_name: AdapterUltralytics
   path_classes: ./models/coco-labels-2014_2017.txt
-  batch_size: 1
+  path_weights: yolov8n.pt
+  batch_size: 8
   confidence: 0.5
   nms_threshold: 0.4
   scale: 1.0      # placeholder
