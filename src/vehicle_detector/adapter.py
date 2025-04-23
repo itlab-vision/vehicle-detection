@@ -1,30 +1,39 @@
 """
-Detection Output Adapters
+Detection Input/Output Adapters
 
-Provides a standardized interface for processing raw outputs from different object detection models.
+Provides standardized interfaces for preprocessing inputs and processing raw outputs
+from different object detection models.
 
 Functionality:
-- Converts model-specific output formats into a unified list of detections.
-- Filters detections by confidence threshold.
-- Supports Non-Maximum Suppression (NMS) for reducing redundant detections.
-- Maps numerical class labels to human-readable class names.
+- Converts input images to model-specific formats
+- Transforms model-specific outputs into unified detection format
+- Filters detections by confidence threshold
+- Applies Non-Maximum Suppression (NMS) for overlapping detections
+- Maps numeric class IDs to human-readable names
 
 Classes:
-    :Adapter: Abstract base class defining the interface for detection output processing.
-    :AdapterFasterRCNN: Concrete implementation for processing Faster R-CNN outputs.
+    :Adapter: Abstract base class for detection input/output processing
+    :AdapterFasterRCNN: Implementation for Faster R-CNN models
+    :AdapterOpenCV: Base adapter for OpenCV-based models
+    :AdapterDetectionTask: Adapter for standard OpenCV detection models
+    :AdapterYOLO: Adapter for YOLO family models
+    :AdapterYOLOTiny: Adapter for YOLO-tiny architectures
 
 Dependencies:
-    :cv2: for image handling and Non-Maximum Suppression (NMS)
-    :numpy: for numerical operations
-    :abc: for abstract base class support
+    :cv2: Image processing and NMS operations
+    :numpy: Numerical computations
+    :abc: Abstract base class support
+    :torchvision: PyTorch model transformations
 """
 from abc import ABC, abstractmethod
 import numpy as np
 import cv2 as cv
+import torchvision
+
 
 class Adapter(ABC):
     """
-    Abstract adapter class that transforms the detector's output into the required format.
+    Abstract adapter class that transforms the detector's input and output into the required format.
     """
     def __init__(self, conf, nms, class_names, interest_classes = None):
         """
@@ -43,6 +52,16 @@ class Adapter(ABC):
         self.interest_classes = interest_classes
 
     @abstractmethod
+    def pre_processing(self, image: np.ndarray, **kwargs):
+        """
+        Prepares input image for model inference.
+
+        :param image: Input image in BGR format
+        :param kwargs: Additional preprocessing parameters
+        :return: Processed input in model-specific format
+        """
+
+    @abstractmethod
     def post_processing(self, output: list, image_width: int, image_height: int):
         """
         Transforms output into a readable format.
@@ -54,6 +73,14 @@ class Adapter(ABC):
         """
 
     def _nms(self, boxes, confidences, classes_id):
+        """
+        Applies Non-Maximum Suppression to detection results.
+
+        :param boxes: List of bounding box coordinates
+        :param confidences: List of detection confidences
+        :param classes_id: List of class identifiers
+        :return: Filtered detections after NMS
+        """
         indexes = cv.dnn.NMSBoxes(boxes, confidences, self.conf, self.nms)
         bboxes = []
         for i in indexes:
@@ -62,20 +89,19 @@ class Adapter(ABC):
 
         return bboxes
 
+
 class AdapterFasterRCNN(Adapter):
     """
-    Adapter for processing Faster R-CNN model output.
+    Adapter implementation for Faster R-CNN models.
+
+    Handles PyTorch-specific preprocessing and output formatting.
     """
+    def pre_processing(self, image: np.ndarray, **kwargs):
+        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
+        return image_tensor
 
     def post_processing(self, output: list, image_width: int, image_height: int):
-        """
-        Transforms Faster R-CNN output into a readable format.
-
-        :param output: Model output tensor (detections).
-        :param image_width: Original image width.
-        :param image_height: Original image height.
-        :return: List of detections [class, x1, y1, x2, y2, confidence].
-        """
         boxes = output[0]['boxes'].cpu().numpy()
         confidences = output[0]['scores'].cpu().numpy()
         class_labels = output[0]['labels'].cpu().numpy()
@@ -109,9 +135,41 @@ class AdapterFasterRCNN(Adapter):
 
         return [detections[i] for i in indexes]
 
-class AdapterDetectionTask(Adapter):
+
+class AdapterOpenCV(Adapter, ABC):
     """
-    Adapter for processing model output.
+    Base adapter class for OpenCV DNN models.
+
+    Implements blob-based preprocessing using cv2.dnn.blobFromImage.
+    """
+    def pre_processing(self, image: np.ndarray, **kwargs):
+        """
+        Prepares the image by resizing, normalizing, and channel swapping.
+
+        :param image: Input image in BGR format
+        :param kwargs: blobFromImage parameters:
+            - scalefactor: Scale multiplier
+            - size: Spatial dimensions for output blob
+            - mean: Mean subtraction values
+            - swapRB: Flag for BGR to RGB conversion
+        :return: Preprocessed image
+        """
+        # Resize the image
+        image = cv.resize(image, kwargs['size'])
+
+        # Normalize the image (subtract mean values)
+        image = (image - np.array(kwargs['mean'])) * kwargs['scalefactor']
+
+        # Swap R and B channels if necessary
+        if kwargs['swapRB']:
+            image = image[:, :, ::-1]  # BGR -> RGB
+
+        return image
+
+
+class AdapterDetectionTask(AdapterOpenCV):
+    """
+    Adapter for standard OpenCV detection models.
     """
     def post_processing(self, output, image_width, image_height):
         classes_id = []
@@ -136,9 +194,10 @@ class AdapterDetectionTask(Adapter):
 
         return self._nms(boxes, confidences, classes_id)
 
-class AdapterYOLO(Adapter):
+
+class AdapterYOLO(AdapterOpenCV):
     """
-    Adapter for processing YOLO model output.
+    Adapter for YOLO models.
     """
     def post_processing(self, output, image_width, image_height):
         classes_id = []
@@ -164,9 +223,10 @@ class AdapterYOLO(Adapter):
 
         return self._nms(boxes, confidences, classes_id)
 
-class AdapterYOLOTiny(Adapter):
+
+class AdapterYOLOTiny(AdapterOpenCV):
     """
-    Adapter for processing YOLO-tiny model output.
+    Adapter for YOLO-tiny models with grid-based output decoding.
     """
     def __demo_postprocess(self, outputs, img_size, p6=False):
         grids = []
@@ -188,7 +248,6 @@ class AdapterYOLOTiny(Adapter):
         return outputs
 
     def post_processing(self, output, image_width, image_height):
-
         predictions = self.__demo_postprocess(output[0], (416, 416))
         boxes = predictions[:, :4]
         scores = predictions[:, 4:5] * predictions[:, 5:]

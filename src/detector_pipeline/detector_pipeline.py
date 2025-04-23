@@ -12,6 +12,24 @@ from src.vehicle_detector.detector import Detector
 import src.utils.data_reader as dr
 from src.gui_application.visualizer import BaseVisualizer
 
+
+@dataclass
+class BatchesTimings:
+    """Data structure for storing batch processing timing metrics.
+
+    Attributes:
+        preprocess_time (List[float]):
+            List of preprocessing durations (in seconds) for each batch
+        inference_time (List[float]):
+            List of model inference durations (in seconds) for each batch
+        postprocess_time (List[float]):
+            List of postprocessing durations (in seconds) for each batch
+    """
+    preprocess_time:    list[float]
+    inference_time:     list[float]
+    postprocess_time:   list[float]
+
+
 @dataclass
 class BatchesTimings():
     """Data structure for storing batch processing timing metrics.
@@ -159,7 +177,7 @@ class DetectionPipeline:
         :param detections: List of detected objects in format 
                                     (label, confidence, x1, y1, x2, y2)
         """
-        self.components.writer.write((frame_idx,) + det for det in detections)
+        self.components.writer.write(list((frame_idx, *det) for det in detections))
 
     def _should_exit(self):
         """

@@ -22,7 +22,8 @@ import cv2 as cv
 import numpy as np
 import torch
 import torchvision
-import adapter as ad
+import src.vehicle_detector.adapter as ad
+
 
 class Detector(ABC):
     """
@@ -65,35 +66,41 @@ class Detector(ABC):
         """
         path_classes = Path(path_classes).absolute()
         if path_classes.exists():
-            with open(path_classes, 'r', encoding = 'utf-8') as f:
+            with open(path_classes, 'r', encoding='utf-8') as f:
                 class_names = f.read().split('\n')
         else:
-            raise ValueError('Incorrect path to image.')
+            raise ValueError('Incorrect path to classes.')
 
         if adapter_name == 'AdapterYOLO':
             return VehicleDetectorOpenCV('Darknet', paths, param_detect,
                                          ad.AdapterYOLO(param_adapter['confidence'],
-                                         param_adapter['nms_threshold'], class_names))
+                                                        param_adapter['nms_threshold'],
+                                                        class_names))
         if adapter_name == 'AdapterYOLOTiny':
             return VehicleDetectorOpenCV('ONNX', paths, param_detect,
                                          ad.AdapterYOLOTiny(param_adapter['confidence'],
-                                         param_adapter['nms_threshold'], class_names))
+                                                            param_adapter['nms_threshold'],
+                                                            class_names))
         if adapter_name == 'AdapterDetectionTask':
             return VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
                                          ad.AdapterDetectionTask(param_adapter['confidence'],
-                                         param_adapter['nms_threshold'], class_names))
+                                                                 param_adapter['nms_threshold'],
+                                                                 class_names))
         if adapter_name == 'AdapterFasterRCNN':
             return VehicleDetectorFasterRCNN(param_detect,
                                              ad.AdapterFasterRCNN(param_adapter['confidence'],
-                                             param_adapter['nms_threshold'], class_names))
+                                                                  param_adapter['nms_threshold'],
+                                                                  class_names))
         if adapter_name == "fake":
             return FakeDetector()
         raise ValueError(f"Unsupported adapter: {adapter_name}")
+
 
 class VehicleDetectorOpenCV(Detector):
     """
     vehicle detection
     """
+
     def __init__(self, format_load, paths, param_detect, adapter):
 
         super().__init__(param_detect, adapter)
@@ -107,15 +114,23 @@ class VehicleDetectorOpenCV(Detector):
             raise ValueError('Incorrect format load.')
 
     def detect(self, image):
+        # Pre-process image using the adapter
+        image_prepared = self.adapter.pre_processing(image,
+                                                     size=self.size,
+                                                     mean=self.mean,
+                                                     scalefactor=self.scale,
+                                                     swapRB=self.swap_rb)
+        # Convert preprocessed image to blob
+        blob = cv.dnn.blobFromImage(image_prepared)
 
-        image_height, image_width, _ = image.shape
-        blob = cv.dnn.blobFromImage(image=image, scalefactor=self.scale, size=self.size,
-                                    mean=self.mean, swapRB = self.swap_rb)
-
+        # Perform inference
         self.model.setInput(blob)
         boxes = self.model.forward()
 
+        # Post-process the detections using the adapter
+        image_height, image_width, _ = image.shape
         return self.adapter.post_processing(boxes, image_width, image_height)
+
 
 class VehicleDetectorFasterRCNN(Detector):
     """
@@ -132,8 +147,8 @@ class VehicleDetectorFasterRCNN(Detector):
         """
         super().__init__(param_detect, adapter)
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-            weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
-        self.model.eval()# Set the model to evaluation mode
+            weights=torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+        self.model.eval()  # Set the model to evaluation mode
 
     def detect(self, image: np.ndarray):
         """
@@ -142,17 +157,17 @@ class VehicleDetectorFasterRCNN(Detector):
         :param image: Input image as a NumPy array.
         :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
         """
-        # Convert the image to RGB and preprocess it
-        image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        image_tensor = torchvision.transforms.functional.to_tensor(image_rgb).unsqueeze(0)
+        # Pre-process image using the adapter
+        image_transformed = self.adapter.pre_processing(image)
 
         # Perform inference
         with torch.no_grad():
-            outputs = self.model(image_tensor)
+            outputs = self.model(image_transformed)
 
         # Post-process the detections using the adapter
         image_height, image_width, _ = image.shape
         return self.adapter.post_processing(outputs, image_width, image_height)
+
 
 class FakeDetector(Detector):
     """

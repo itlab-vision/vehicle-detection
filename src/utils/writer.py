@@ -17,11 +17,12 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import csv
 
+
 class Writer(ABC):
     """Abstract base class for different file format writers."""
 
     @abstractmethod
-    def write(self, data: tuple):
+    def write(self, data: list[tuple]):
         """
         Write a single data row to the output file.
 
@@ -57,6 +58,7 @@ class Writer(ABC):
             return CsvWriter(resolved_path)
         raise ValueError(f"Unsupported format: {resolved_path.suffix}")
 
+
 class CsvWriter(Writer):
     """CSV format writer implementation."""
 
@@ -68,7 +70,6 @@ class CsvWriter(Writer):
         """
         self.output_path = output_path
         self.first_write = True
-
 
     def write(self, data: list[tuple]):
         """
