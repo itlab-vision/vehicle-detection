@@ -10,8 +10,9 @@
   images_path: ./data/imgs_MOV03478
   groundtruth_path: ./layout/mov03478.csv
   model_name: SSD
-  adapter_name: AdapterSSD
+  adapter_name: AdapterTorchvision
   path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
+  path_weights: SSD300_VGG16_Weights.COCO_V1
   batch_size: 1
   confidence: 0.5
   nms_threshold: 0.4

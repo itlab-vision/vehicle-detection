@@ -29,8 +29,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import cv2 as cv
-import torch
-import torchvision
+from torchvision.transforms.functional import to_tensor
 
 
 class Adapter(ABC):
@@ -91,59 +90,6 @@ class Adapter(ABC):
                            int(boxes[i][2]), int(boxes[i][3]), confidences[i]))
 
         return bboxes
-
-
-class AdapterTorchvision(Adapter):
-    """
-    Adapter implementation for Faster R-CNN models.
-
-    Handles PyTorch-specific preprocessing and output formatting.
-    """
-    def pre_processing(self, images: np.ndarray, **kwargs):
-        image_tensors = []
-        for image in images:
-            image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-            tensor = torchvision.transforms.functional.to_tensor(image_rgb)
-            image_tensors.append(tensor)
-        return image_tensors
-
-    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
-        batch_detections = []
-        for output, (_, _) in zip(outputs, image_sizes):
-            boxes = output['boxes'].cpu().numpy()
-            scores = output['scores'].cpu().numpy()
-            labels = output['labels'].cpu().numpy()
-
-            detections = []
-            for box, score, label in zip(boxes, scores, labels):
-                if score >= self.conf:
-                    class_name = self.class_names[label - 1]
-                    if class_name in self.interest_classes:
-                        detections.append(
-                            [class_name, int(box[0]), int(box[1]), int(box[2]), int(box[3]),
-                             float(score)])
-
-            detections = self.__apply_nms(detections)
-            batch_detections.append(detections)
-        return batch_detections
-
-    def __apply_nms(self, detections: list):
-        """
-        Apply Non-Maximum Suppression (NMS) to remove redundant detections.
-
-        :param detections: List of detections [class, x1, y1, x2, y2, confidence].
-        :return: List of detections after NMS.
-        """
-        if len(detections) == 0:
-            return []
-
-        boxes = np.array([det[1:5] for det in detections])
-        confidences = np.array([det[5] for det in detections])
-        indexes = cv.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), self.conf, self.nms)
-        if len(indexes) == 0:
-            return []
-
-        return [detections[i] for i in indexes]
 
 
 class AdapterOpenCV(Adapter, ABC):
@@ -430,6 +376,59 @@ class AdapterYOLOX(AdapterOpenCV):
         return x0, y0, x1, y1
 
 
+class AdapterTorchvision(Adapter):
+    """
+    Adapter implementation for Faster R-CNN models.
+
+    Handles PyTorch-specific preprocessing and output formatting.
+    """
+    def pre_processing(self, images: np.ndarray, **kwargs):
+        image_tensors = []
+        for image in images:
+            image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+            tensor = to_tensor(image_rgb)
+            image_tensors.append(tensor)
+        return image_tensors
+
+    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
+        batch_detections = []
+        for output, (_, _) in zip(outputs, image_sizes):
+            boxes = output['boxes'].cpu().numpy()
+            scores = output['scores'].cpu().numpy()
+            labels = output['labels'].cpu().numpy()
+
+            detections = []
+            for box, score, label in zip(boxes, scores, labels):
+                if score >= self.conf:
+                    class_name = self.class_names[label - 1]
+                    if class_name in self.interest_classes:
+                        detections.append(
+                            [class_name, int(box[0]), int(box[1]), int(box[2]), int(box[3]),
+                             float(score)])
+
+            detections = self.__apply_nms(detections)
+            batch_detections.append(detections)
+        return batch_detections
+
+    def __apply_nms(self, detections: list):
+        """
+        Apply Non-Maximum Suppression (NMS) to remove redundant detections.
+
+        :param detections: List of detections [class, x1, y1, x2, y2, confidence].
+        :return: List of detections after NMS.
+        """
+        if len(detections) == 0:
+            return []
+
+        boxes = np.array([det[1:5] for det in detections])
+        confidences = np.array([det[5] for det in detections])
+        indexes = cv.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), self.conf, self.nms)
+        if len(indexes) == 0:
+            return []
+
+        return [detections[i] for i in indexes]
+
+
 class AdapterUltralytics(Adapter):
     """
     Adapter for YOLO and RT-DETR using the Ultralytics ONNX runtime with batch support.
@@ -476,77 +475,3 @@ class AdapterUltralytics(Adapter):
 
         indexes = indexes.flatten()
         return [detections[i] for i in indexes]
-
-
-class AdapterSSDLite(Adapter):
-    """
-    Adapter for SSDLite320_MobileNet_V3_Large with reduced local variables.
-    """
-    def pre_processing(self, images: list[np.ndarray], **kwargs):
-        transform = torchvision.transforms.Compose([
-            torchvision.transforms.ToPILImage(),
-            torchvision.transforms.Resize((320, 320)),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                             std=[0.229, 0.224, 0.225])
-        ])
-        return torch.stack([transform(img) for img in images])
-
-    def post_processing(self, outputs: list, image_sizes: list, **kwargs):
-        batch_detections = []
-        for output, img_dim in zip(outputs, image_sizes):
-            detections = self._process_output(output, img_dim)
-            batch_detections.append(self.__apply_nms(detections))
-        return batch_detections
-
-    def _process_output(self, output, img_dim):
-        detections = []
-        for box, score, label in zip(output['boxes'],
-                                     output['scores'],
-                                     output['labels']):
-            detection = self._create_detection(box, score, label, img_dim)
-            if detection:
-                detections.append(detection)
-        return detections
-
-    def _create_detection(self, box, score, label, image_dimensions):
-        if score.item() < self.conf:
-            return None
-
-        class_id = label.item()
-        if class_id >= len(self.class_names):
-            return None
-
-        class_name = self.class_names[class_id - 1]
-        if self.interest_classes and class_name not in self.interest_classes:
-            return None
-
-        w, h = image_dimensions
-        x1, y1, x2, y2 = self._scale_coordinates(box, w, h)
-        return [class_name, x1, y1, x2, y2, float(score.item())]
-
-    def _scale_coordinates(self, box, w, h):
-        x1, y1, x2, y2 = box.tolist()
-        scale_x, scale_y = w / 320, h / 320
-        return (
-            int(x1 * scale_x),
-            int(y1 * scale_y),
-            int(x2 * scale_x),
-            int(y2 * scale_y)
-        )
-
-    def __apply_nms(self, detections: list):
-        if not detections:
-            return []
-
-        boxes = np.array([[x, y, x2 - x, y2 - y] for _, x, y, x2, y2, _ in detections])
-        confidences = np.array([conf for *_, conf in detections])
-
-        indexes = cv.dnn.NMSBoxes(
-            boxes.tolist(),
-            confidences.tolist(),
-            self.conf,
-            self.nms
-        )
-
-        return [detections[i] for i in indexes.flatten()] if len(indexes) > 0 else []
