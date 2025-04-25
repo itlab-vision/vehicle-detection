@@ -20,6 +20,7 @@ import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 import random
+from functools import lru_cache
 import requests
 
 import cv2 as cv
@@ -62,6 +63,29 @@ class Detector(ABC):
         """
 
     @staticmethod
+    @lru_cache(maxsize=16)
+    def load_classes(path: str) -> tuple:
+        """
+        Load class labels from a local file or URL with caching.
+        """
+        parsed = urlparse(path)
+        if parsed.scheme in ('http', 'https'):
+            response = requests.get(path, timeout=5)
+            if response.status_code == 200:
+                print(f"[INFO] Loaded class names from URL (cached): {path}")
+                return tuple(response.text.strip().split('\n'))
+
+            raise ValueError(f"Failed to load class file from URL: "
+                             f"{path} (status code {response.status_code})")
+
+        path = Path(path).absolute()
+        if path.exists():
+            with open(path, 'r', encoding='utf-8') as f:
+                return tuple(f.read().strip().split('\n'))
+
+        raise ValueError(f"Incorrect path to class file: {path}")
+
+    @staticmethod
     def create(adapter_name, path_classes, paths, param_adapter, param_detect):
         """
         Factory method for creating detector instances.
@@ -69,29 +93,11 @@ class Detector(ABC):
         :return: Detector: Concrete subclass instance
         :raise: ValueError: For unsupported mode specifications
         """
-        def load_classes(path):
-            parsed = urlparse(path)
-            if parsed.scheme in ('http', 'https'):
-                response = requests.get(path, timeout=2)
-                if response.status_code == 200:
-                    print(f"[INFO] Successfully loaded class names from URL: {path}")
-                    return response.text.strip().split('\n')
-
-                raise ValueError(f"Failed to load class file from URL: "
-                                 f"{path} (status code {response.status_code})")
-
-            # Path to file with class labels
-            path = Path(path).absolute()
-            if path.exists():
-                with open(path, 'r', encoding='utf-8') as f:
-                    return f.read().strip().split('\n')
-
-            raise ValueError(f"Incorrect path to class file: {path}")
 
         def make_adapter(adapter_class):
             return adapter_class(param_adapter['confidence'],
                                  param_adapter['nms_threshold'],
-                                 load_classes(path_classes))
+                                 Detector.load_classes(path_classes))
 
         config = {
             'AdapterYOLO': lambda:
