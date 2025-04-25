@@ -11,6 +11,7 @@ Used to visually analyze trade-offs between speed and detection quality.
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from adjustText import adjust_text
 
 
 def generate_perf_plots(df: pd.DataFrame, output_dir: str):
@@ -20,22 +21,27 @@ def generate_perf_plots(df: pd.DataFrame, output_dir: str):
     :param df: Experiment results dataframe
     :param output_dir: Output directory for plots
     """
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(14, 6), constrained_layout=True)
 
     # FPS vs Batch Size plot
+    texts = []
     for model in df['model'].unique():
         model_data = df[df['model'] == model]
         plt.plot(model_data['batch_size'], model_data['inference_fps'],
                  marker='o', linestyle='--', label=model)
 
         for x, y in zip(model_data['batch_size'], model_data['inference_fps']):
-            plt.text(x, y + 0.03, f'{y:.1f}', ha='center', va='bottom', fontsize=8)
+            texts.append(plt.text(x, y, f'{y:.1f}', fontsize=8))
+
+    adjust_text(texts, arrowprops={"arrowstyle": '-',
+                                   "color": 'gray'})
 
     plt.title('Inference FPS vs Batch Size')
     plt.xlabel('Batch Size')
     plt.ylabel('FPS')
     plt.grid(True)
-    plt.legend()
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
     plt.savefig(os.path.join(output_dir, 'fps_vs_batch.png'))
     plt.close()
 
