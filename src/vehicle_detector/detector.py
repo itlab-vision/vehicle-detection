@@ -26,8 +26,6 @@ import cv2 as cv
 import numpy as np
 import torch
 import torchvision
-from torchvision.models import detection
-import onnxruntime as rt
 from ultralytics import YOLO, RTDETR
 
 import src.vehicle_detector.adapter as ad
@@ -93,9 +91,7 @@ class Detector(ABC):
         def make_adapter(adapter_class):
             return adapter_class(param_adapter['confidence'],
                                  param_adapter['nms_threshold'],
-                                 class_names)
-
-        class_names = load_classes(path_classes)
+                                 load_classes(path_classes))
 
         config = {
             'AdapterYOLO': lambda:
@@ -112,13 +108,22 @@ class Detector(ABC):
                                       make_adapter(ad.AdapterDetectionTask)),
             'AdapterFasterRCNN': lambda:
                 VehicleDetectorFasterRCNN(param_detect,
-                                          make_adapter(ad.AdapterFasterRCNN)),
+                                          make_adapter(ad.AdapterTorchvision)),
+            'AdapterFCOS': lambda:
+                VehicleDetectorFCOS(param_detect,
+                                    make_adapter(ad.AdapterTorchvision)),
+            'AdapterRetinaNet': lambda:
+                VehicleDetectorRetinaNet(param_detect,
+                                         make_adapter(ad.AdapterTorchvision)),
+            'AdapterSSD': lambda:
+                VehicleDetectorSSD(param_detect,
+                                   make_adapter(ad.AdapterTorchvision)),
+            'AdapterSSDlite': lambda:
+                VehicleDetectorSSDLite(param_detect,
+                                       make_adapter(ad.AdapterTorchvision)),
             'AdapterUltralytics': lambda:
                 VehicleDetectorUltralytics(paths, param_detect,
                                            make_adapter(ad.AdapterUltralytics)),
-            'AdapterSSDLite': lambda:
-                VehicleDetectorSSDLite(param_detect,
-                                       make_adapter(ad.AdapterSSDLite)),
             'fake': lambda:
                 FakeDetector()
         }
@@ -132,7 +137,7 @@ class Detector(ABC):
 # need testing of batch processing implementation
 class VehicleDetectorOpenCV(Detector):
     """
-    vehicle detection
+    A class for performing vehicle detection using OpenCV's deep learning module.
     """
 
     def __init__(self, format_load, paths, param_detect, adapter):
@@ -173,23 +178,14 @@ class VehicleDetectorOpenCV(Detector):
         return detections, preproc_time, inference_time, postproc_time
 
 
-class VehicleDetectorFasterRCNN(Detector):
+class VehicleDetectorTorchvision(Detector, ABC):
     """
-    Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
+    A class for performing vehicle detection using Torchvision models.
     """
 
     def __init__(self, param_detect, adapter):
-        """
-        Initializes the Faster R-CNN vehicle detector.
-
-        :param class_names: List of class names to be detected (e.g., ['car', 'bus']).
-        :param conf_threshold: Confidence threshold for detections.
-        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
-        """
         super().__init__(param_detect, adapter)
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-            weights=torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
-        self.model.eval()  # Set the model to evaluation mode
+        self.model = None
 
     def detect(self, images: list[np.ndarray]):
         """
@@ -218,6 +214,67 @@ class VehicleDetectorFasterRCNN(Detector):
         return detections, preproc_time, inference_time, postproc_time
 
 
+class VehicleDetectorFasterRCNN(VehicleDetectorTorchvision):
+    """
+    Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
+    """
+
+    def __init__(self, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+            weights=torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+        self.model.eval()
+
+
+class VehicleDetectorFCOS(VehicleDetectorTorchvision):
+    """
+    A vehicle detector using the FCOS model with a ResNet-50 backbone from Torchvision.
+    """
+
+    def __init__(self, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.model = torchvision.models.detection.fcos_resnet50_fpn(
+            weights=torchvision.models.detection.FCOS_ResNet50_FPN_Weights.COCO_V1)
+        self.model.eval()
+
+
+class VehicleDetectorRetinaNet(VehicleDetectorTorchvision):
+    """
+    A vehicle detector using the RetinaNet model with a ResNet-50 backbone from Torchvision.
+    """
+
+    def __init__(self, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.model = torchvision.models.detection.retinanet_resnet50_fpn_v2(
+            weights=torchvision.models.detection.RetinaNet_ResNet50_FPN_V2_Weights.COCO_V1)
+        self.model.eval()
+
+
+class VehicleDetectorSSD(VehicleDetectorTorchvision):
+    """
+    A vehicle detector using the SSD300 model with a VGG-16 backbone from Torchvision.
+    """
+
+    def __init__(self, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.model = torchvision.models.detection.ssd300_vgg16(
+            weights=torchvision.models.detection.SSD300_VGG16_Weights.COCO_V1)
+        self.model.eval()
+
+
+class VehicleDetectorSSDLite(VehicleDetectorTorchvision):
+    """
+    A vehicle detector using the SSDLite320 model with a MobileNetV3-Large
+    backbone from Torchvision.
+    """
+
+    def __init__(self, param_detect, adapter):
+        super().__init__(param_detect, adapter)
+        self.model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(
+            weights=torchvision.models.detection.SSDLite320_MobileNet_V3_Large_Weights.COCO_V1)
+        self.model.eval()
+
+
 class VehicleDetectorUltralytics(Detector):
     """
     Vehicle detector based on YOLO and RTDETR ONNX using the Ultralytics API.
@@ -234,7 +291,7 @@ class VehicleDetectorUltralytics(Detector):
         elif 'rtdetr' in paths['path_weights']:
             self.model = RTDETR(paths['path_weights'])
         else:
-            raise ValueError("VehicleDetectorYoloUltralytics invalid path_weights")
+            raise ValueError("VehicleDetectorUltralytics invalid path_weights")
 
     def detect(self, images: list[np.ndarray]):
         """
@@ -258,67 +315,6 @@ class VehicleDetectorUltralytics(Detector):
         start_time = time.time()
         image_sizes = [(img.shape[1], img.shape[0]) for img in images]
         detections = self.adapter.post_processing(results, image_sizes)
-        postproc_time = time.time() - start_time
-
-        return detections, preproc_time, inference_time, postproc_time
-
-
-class VehicleDetectorSSDLite(Detector):
-    """
-    Vehicle detector using SSDLite320_MobileNet_V3_Large.
-    """
-
-    def __init__(self, param_detect, adapter):
-        super().__init__(param_detect, adapter)
-        self.model = detection.ssdlite320_mobilenet_v3_large(pretrained=True)
-        self.model.eval()
-
-    def detect(self, images: list[np.ndarray]):
-        start_time = time.time()
-        preprocessed = self.adapter.pre_processing(images)
-        preproc_time = time.time() - start_time
-
-        start_time = time.time()
-        with torch.no_grad():
-            outputs = self.model(preprocessed)
-        inference_time = time.time() - start_time
-
-        start_time = time.time()
-        image_sizes = [(img.shape[1], img.shape[0]) for img in images]
-        detections = self.adapter.post_processing(outputs, image_sizes)
-        postproc_time = time.time() - start_time
-
-        return detections, preproc_time, inference_time, postproc_time
-
-
-class VehicleDetectorYOLOv4(Detector):
-    """
-    Vehicle detector using YOLOv4
-    """
-
-    def __init__(self, paths, param_detect, adapter):
-        super().__init__(param_detect, adapter)
-        self.path_anchors = paths['path_anchors']
-        self.model = rt.InferenceSession(paths['path_weights'])
-
-    def detect(self, images: list[np.ndarray]):
-        start_time = time.time()
-        preprocessed = self.adapter.pre_processing(images,
-                                                   size=self.size)
-        preproc_time = time.time() - start_time
-
-        start_time = time.time()
-        outputs = self.model.get_outputs()
-        output_names = list(map(lambda output: output.name, outputs))
-        input_name = self.model.get_inputs()[0].name
-
-        outputs = self.model.run(output_names, {input_name: preprocessed})
-        inference_time = time.time() - start_time
-
-        start_time = time.time()
-        image_sizes = [(img.shape[1], img.shape[0]) for img in images]
-        detections = self.adapter.post_processing(outputs, image_sizes,
-                                                  path_anchors=self.path_anchors)
         postproc_time = time.time() - start_time
 
         return detections, preproc_time, inference_time, postproc_time

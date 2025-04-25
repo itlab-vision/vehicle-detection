@@ -111,7 +111,12 @@ def run_experiments(
 
 if __name__ == '__main__':
     DEFAULT_MODEL_CONFIGS = [
-        './configs/detector_config_file_fasterRCNN.yaml',
+        './configs/torchvision/detector_config_fasterRCNN.yaml',
+        './configs/torchvision/detector_config_FCOS.yaml',
+        './configs/torchvision/detector_config_RetinaNet.yaml',
+        './configs/torchvision/detector_config_SSD.yaml',
+        './configs/torchvision/detector_config_SSDlite.yaml',
+
         './configs/yolo/detector_config_yolov3_tinyu.yaml',
         './configs/yolo/detector_config_yolov11s.yaml',
         './configs/yolo/detector_config_yolov12s.yaml',

@@ -93,7 +93,7 @@ class Adapter(ABC):
         return bboxes
 
 
-class AdapterFasterRCNN(Adapter):
+class AdapterTorchvision(Adapter):
     """
     Adapter implementation for Faster R-CNN models.
 
