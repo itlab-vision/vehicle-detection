@@ -36,7 +36,6 @@ def generate_perf_plots(df: pd.DataFrame, output_dir: str):
     adjust_text(texts, arrowprops={"arrowstyle": '-',
                                    "color": 'gray'})
 
-    plt.title('Inference FPS vs Batch Size')
     plt.xlabel('Batch Size')
     plt.ylabel('FPS')
     plt.grid(True)
@@ -61,19 +60,18 @@ def generate_quality_plot(df: pd.DataFrame, output_dir: str):
     accuracies = accuracy_data.values
 
     bars = plt.bar(range(len(models)), accuracies, color='skyblue')
-    plt.title('Model Accuracy Comparison')
-    plt.xlabel('Model')
-    plt.ylabel('Accuracy')
+
+    plt.ylabel('mAP, %')
     plt.ylim(0, 1)
     plt.grid(axis='y')
-    plt.xticks(ticks=range(len(models)), labels=models, rotation=90, ha='center')
+    plt.xticks(ticks=range(len(models)), labels=models, rotation=45, ha='center')
 
-    # Adding labels above the bars
-    for _, elem in enumerate(bars):
-        height = elem.get_height()
-        plt.text(elem.get_x() + elem.get_width() / 2, height - 0.02,
-                 f'{height:.2f}', ha='center', va='top', fontsize=9, color='black')
+    # Add value labels above each bar
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, height + 0.03,
+                 f'{height:.2f}', ha='center', va='bottom', fontsize=9, color='black')
 
-    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.15)
     plt.savefig(os.path.join(output_dir, 'accuracy_comparison.png'))
     plt.close()
