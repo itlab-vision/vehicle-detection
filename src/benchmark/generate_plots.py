@@ -67,9 +67,9 @@ def generate_quality_plot(df: pd.DataFrame, output_dir: str):
     plt.xticks(ticks=range(len(models)), labels=models, rotation=45, ha='center')
 
     # Add value labels above each bar
-    for bar in bars:
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, height + 0.03,
+    for elem in bars:
+        height = elem.get_height()
+        plt.text(elem.get_x() + elem.get_width() / 2, height + 0.03,
                  f'{height:.2f}', ha='center', va='bottom', fontsize=9, color='black')
 
     plt.subplots_adjust(bottom=0.15)

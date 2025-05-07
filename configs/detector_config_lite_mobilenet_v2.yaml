@@ -3,7 +3,7 @@
   groundtruth_path: ../layout/mov03478.csv
   model_name: lite_mobilenet_v2
   adapter_name: AdapterDetectionTask
-  path_classes: ../models/lite_mobilenet_v2/coco_91cl_bkgr.txt
+  path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
   path_weights: ../models/lite_mobilenet_v2/frozen_inference_graph.pb
   path_config : ../models/lite_mobilenet_v2/lite_mobilenet_v2.pbtxt
   confidence: 0.1
