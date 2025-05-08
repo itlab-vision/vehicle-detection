@@ -99,63 +99,7 @@ def run_single_experiment(model_config: str, batch_size: int, params: Experiment
         }
 
 
-def run_experiment_in_pool(experiment_args: tuple):
-    """
-    Runs an experiment in the pool of processes. This function is used to pass arguments
-    to the process pool.
-
-    :param experiment_args: tuple: A tuple containing the parameters for running the experiment
-                 (model, batch size, parameters, file path).
-
-    :return: The results of the single experiment obtained from run_single_experiment.
-    """
-    return run_single_experiment(*experiment_args)
-
-
-def run_experiments_pool(
-        model_config_paths: list[str],
-        batch_sizes: list[int],
-        params: ExperimentParameters):
-    """
-    Executes batch detection experiments with given model configurations and batch sizes.
-    Runs detection pipelines, collects performance and accuracy metrics, saves results to CSV,
-    and generates analysis plots.
-
-    :param model_config_paths: List of paths to model configuration YAML files.
-    :param batch_sizes: List of batch sizes to be tested.
-    :param params: Experiment parameters including input/output paths and mode.
-    """
-    # Create output directory
-    os.makedirs(params.output_path, exist_ok=True)
-    os.makedirs(Path('./src/benchmark/tmp').absolute(), exist_ok=True)
-    tmp_dir = Path('./src/benchmark/tmp').absolute()
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-
-    experiment_args = [
-        (
-            model_config,
-            batch_size,
-            params,
-            tmp_dir / f"{Path(model_config).stem}_bs{batch_size}.csv"
-        )
-        for model_config in model_config_paths
-        for batch_size in batch_sizes
-    ]
-
-    with mp.Pool(processes=mp.cpu_count()) as pool:
-        results = pool.map(run_experiment_in_pool, experiment_args)
-
-    # Save and analyze results
-    df = pd.DataFrame(results)
-    results_file = os.path.join(params.output_path, 'benchmark_results.csv')
-    df.to_csv(results_file, index=False)
-
-    # Generate plots
-    generate_perf_plots(df, params.output_path)
-    generate_quality_plot(df, params.output_path)
-
-
-def run_experiments_mp(
+def run_experiments(
         model_config_paths: list[str],
         batch_sizes: list[int],
         params: ExperimentParameters):
@@ -197,46 +141,6 @@ def run_experiments_mp(
     generate_quality_plot(df, params.output_path)
 
 
-def run_experiments_shared(
-        model_config_paths: list[str],
-        batch_sizes: list[int],
-        params: ExperimentParameters):
-    """
-    Executes batch detection experiments with given model configurations and batch sizes.
-    Runs detection pipelines, collects performance and accuracy metrics, saves results to CSV,
-    and generates analysis plots.
-
-    :param model_config_paths: List of paths to model configuration YAML files.
-    :param batch_sizes: List of batch sizes to be tested.
-    :param params: Experiment parameters including input/output paths and mode.
-    """
-    # Create output directory
-    os.makedirs(params.output_path, exist_ok=True)
-    os.makedirs(Path('./src/benchmark/tmp').absolute(), exist_ok=True)
-    tmp_dir = Path('./src/benchmark/tmp').absolute()
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-
-    results = []
-    for model_config in tqdm(model_config_paths, desc='Models configs'):
-        for batch_size in tqdm(batch_sizes, desc='Batch sizes', leave=False):
-            experiment_args = (
-                model_config,
-                batch_size,
-                params,
-                tmp_dir / f"{Path(model_config).stem}_bs{batch_size}.csv"
-            )
-            results.append(run_single_experiment(*experiment_args))
-
-    # Save and analyze results
-    df = pd.DataFrame(results)
-    results_file = os.path.join(params.output_path, 'benchmark_results.csv')
-    df.to_csv(results_file, index=False)
-
-    # Generate plots
-    generate_perf_plots(df, params.output_path)
-    generate_quality_plot(df, params.output_path)
-
-
 if __name__ == '__main__':
     DEFAULT_MODEL_CONFIGS = [
         './configs/torchvision/detector_config_fasterRCNN.yaml',
@@ -260,7 +164,7 @@ if __name__ == '__main__':
             args.output_path,
             args.mode
         )
-        run_experiments_shared(
+        run_experiments(
             DEFAULT_MODEL_CONFIGS,
             DEFAULT_BATCH_SIZES,
             data_params,
