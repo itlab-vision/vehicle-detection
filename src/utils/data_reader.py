@@ -68,7 +68,7 @@ class CsvGTReader(DataReader):
                         raise ValueError(f"Incorrect line in the file {self.file_path}: {row}")
 
                     frame_id, class_name, x1, y1, x2, y2 = row
-                    row_data = (int(frame_id), str(class_name), int(x1), int(y1),
+                    row_data = (int(frame_id), str(class_name).upper(), int(x1), int(y1),
                                 int(x2), int(y2))
                     parsed_data.append(row_data)
 
@@ -179,7 +179,7 @@ class DetectionReader(DataReader):
                         raise ValueError(f"Incorrect line in the file {self.file_path}: {row}")
 
                     frame_id, class_name, x1, y1, x2, y2, confidence = row
-                    row_data = (int(frame_id), str(class_name), int(x1), int(y1),
+                    row_data = (int(frame_id), str(class_name).upper(), int(x1), int(y1),
                                 int(x2), int(y2), float(confidence))
                     parsed_data.append(row_data)
         except FileNotFoundError:

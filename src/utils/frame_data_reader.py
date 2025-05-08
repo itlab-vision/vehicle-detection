@@ -21,9 +21,9 @@ import cv2 as cv
 class FrameDataReader(ABC):
     """
     Abstract Base Class for frame data readers.
-    
+
     Defines the interface for iterating through frames from different sources.
-    
+
     Methods:
         create: Factory method to instantiate appropriate reader (static)
         __enter__: Context manager entry (abstract)
@@ -31,6 +31,7 @@ class FrameDataReader(ABC):
         __iter__: Returns iterator object (abstract)
         __next__: Returns next frame (abstract)
     """
+
     @abstractmethod
     def __enter__(self):
         """
@@ -53,10 +54,11 @@ class FrameDataReader(ABC):
     def __next__(self):
         """
         Get next frame in sequence.
-        
+
         :return ndarray: Next frame as numpy array
         :raise StopIteration: When no more frames available
         """
+
     @abstractmethod
     def get_total_images(self):
         """
@@ -64,11 +66,12 @@ class FrameDataReader(ABC):
 
         :return int: total images
         """
+
     @staticmethod
-    def create(mode: str, dir_path: str, batch_size: int):
+    def create(mode: str, dir_path: str, batch_size: int = 1):
         """
         Factory method to create appropriate reader instance.
-        
+
         :param mode: Source type - 'video' or 'image'
         :param dir_path: Path to video file or image directory
         :param batch_size: Size of image batch
@@ -85,7 +88,7 @@ class FrameDataReader(ABC):
 class VideoDataReader(FrameDataReader):
     """
     Video file frame reader using OpenCV VideoCapture.
-    
+
     Iterates through frames of a video file. Automatically handles
     video resource cleanup on exhaustion.
     """
@@ -170,10 +173,10 @@ class ImgDataReader(FrameDataReader):
         """
         Initializes the image batch reader with directory and batch configuration.
 
-        :param dir_path: Path to the directory containing image files. 
+        :param dir_path: Path to the directory containing image files.
 
-        :param batch_size: 
-            Number of images to return per batch. 
+        :param batch_size:
+            Number of images to return per batch.
             Defaults to 1 (single image per batch).
             Must be positive integer.
 
@@ -230,7 +233,7 @@ class ImgDataReader(FrameDataReader):
     def __enter__(self):
         """
         Context manager entry point.
-        
+
         :return self: Object instanse
         """
         return self

@@ -1,0 +1,23 @@
+# ------------------------------------------------------------
+# This configuration uses class labels from:
+# https://github.com/amikelive/coco-labels/blob/master/
+#
+# Alternatively, specify custom paths to your own version of
+# label file.
+# ------------------------------------------------------------
+
+
+- mode : image
+  images_path: ./data/imgs_MOV03478
+  groundtruth_path: ./layout/mov03478.csv
+  model_name: Yolov11n
+  adapter_name: AdapterUltralytics
+  path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
+  path_weights: https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt
+  batch_size: 8
+  confidence: 0.5
+  nms_threshold: 0.4
+  scale: 1.0      # placeholder
+  size: 312 312   # placeholder
+  mean:           # placeholder
+  swapRB:         # placeholder

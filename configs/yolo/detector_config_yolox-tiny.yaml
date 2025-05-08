@@ -1,0 +1,32 @@
+# ------------------------------------------------------------
+# This configuration uses:
+# - class labels:
+#   https://github.com/amikelive/coco-labels/blob/master/
+#
+# - weights:
+#   https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/yolox-tiny
+#
+# Ensure that the following files are downloaded from the repo above:
+# - yolox-tiny.onnx (converted from `yolox_tiny.pth`)
+# and placed in ./models/yolox-tiny/
+#
+# Alternatively, specify custom paths to your own version of
+# label file.
+# ------------------------------------------------------------
+
+# Working only on batch size 1
+
+- mode : image
+  images_path: ./data/imgs_MOV03478
+  groundtruth_path: ./layout/mov03478.csv
+  model_name: yolox_tiny
+  adapter_name: AdapterYOLOX
+  path_weights: ./models/yolox-tiny/yolox-tiny.onnx
+  path_classes: https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt
+  batch_size: 1
+  confidence: 0.5
+  nms_threshold: 0.45
+  scale: 0.00392156862745098  # 1/255
+  size: 416 416
+  mean:
+  swapRB: True

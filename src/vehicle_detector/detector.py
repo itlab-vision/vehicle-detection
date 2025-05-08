@@ -15,13 +15,20 @@ Dependencies:
     :random: for synthetic detection generation
     :abc: for abstract base class support
 """
+from urllib.parse import urlparse
+import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 import random
+from functools import lru_cache
+import requests
+
 import cv2 as cv
 import numpy as np
 import torch
-import torchvision
+from torchvision.models import detection
+from ultralytics import YOLO, RTDETR
+
 import src.vehicle_detector.adapter as ad
 
 
@@ -48,57 +55,83 @@ class Detector(ABC):
         self.adapter = adapter
 
     @abstractmethod
-    def detect(self, image: np.ndarray):
+    def detect(self, images: list[np.ndarray]):
         """
         Process image and return detected objects.
 
-        :param image: Input image array (OpenCV format)
-        :return list: Detection tuples (label, x1, y1, x2, y2)
+        :param images: Input array of images (OpenCV format)
         """
+
+    @staticmethod
+    @lru_cache(maxsize=16)
+    def load_classes(path: str) -> tuple:
+        """
+        Load class labels from a local file or URL with caching.
+        """
+        parsed = urlparse(path)
+        if parsed.scheme in ('http', 'https'):
+            response = requests.get(path, timeout=5)
+            if response.status_code == 200:
+                print(f"[INFO] Loaded class names from URL (cached): {path}")
+                return tuple(response.text.strip().split('\n'))
+
+            raise ValueError(f"Failed to load class file from URL: "
+                             f"{path} (status code {response.status_code})")
+
+        path = Path(path).absolute()
+        if path.exists():
+            with open(path, 'r', encoding='utf-8') as f:
+                return tuple(f.read().strip().split('\n'))
+
+        raise ValueError(f"Incorrect path to class file: {path}")
 
     @staticmethod
     def create(adapter_name, path_classes, paths, param_adapter, param_detect):
         """
         Factory method for creating detector instances.
-        
+
         :return: Detector: Concrete subclass instance
         :raise: ValueError: For unsupported mode specifications
         """
-        path_classes = Path(path_classes).absolute()
-        if path_classes.exists():
-            with open(path_classes, 'r', encoding='utf-8') as f:
-                class_names = f.read().split('\n')
-        else:
-            raise ValueError('Incorrect path to classes.')
 
-        if adapter_name == 'AdapterYOLO':
-            return VehicleDetectorOpenCV('Darknet', paths, param_detect,
-                                         ad.AdapterYOLO(param_adapter['confidence'],
-                                                        param_adapter['nms_threshold'],
-                                                        class_names))
-        if adapter_name == 'AdapterYOLOTiny':
-            return VehicleDetectorOpenCV('ONNX', paths, param_detect,
-                                         ad.AdapterYOLOTiny(param_adapter['confidence'],
-                                                            param_adapter['nms_threshold'],
-                                                            class_names))
-        if adapter_name == 'AdapterDetectionTask':
-            return VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
-                                         ad.AdapterDetectionTask(param_adapter['confidence'],
-                                                                 param_adapter['nms_threshold'],
-                                                                 class_names))
-        if adapter_name == 'AdapterFasterRCNN':
-            return VehicleDetectorFasterRCNN(param_detect,
-                                             ad.AdapterFasterRCNN(param_adapter['confidence'],
-                                                                  param_adapter['nms_threshold'],
-                                                                  class_names))
-        if adapter_name == "fake":
-            return FakeDetector()
-        raise ValueError(f"Unsupported adapter: {adapter_name}")
+        def make_adapter(adapter_class):
+            return adapter_class(param_adapter['confidence'],
+                                 param_adapter['nms_threshold'],
+                                 Detector.load_classes(path_classes))
+
+        config = {
+            'AdapterYOLO': lambda:
+                VehicleDetectorOpenCV('Darknet', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLO)),
+            'AdapterYOLOTiny': lambda:
+                VehicleDetectorOpenCV('ONNX', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLOTiny)),
+            'AdapterYOLOX': lambda:
+                VehicleDetectorOpenCV('ONNX', paths, param_detect,
+                                      make_adapter(ad.AdapterYOLOX)),
+            'AdapterDetectionTask': lambda:
+                VehicleDetectorOpenCV('TensorFlow', paths, param_detect,
+                                      make_adapter(ad.AdapterDetectionTask)),
+            'AdapterTorchvision': lambda:
+                VehicleDetectorTorchvision(paths, param_detect,
+                                           make_adapter(ad.AdapterTorchvision)),
+            'AdapterUltralytics': lambda:
+                VehicleDetectorUltralytics(paths, param_detect,
+                                           make_adapter(ad.AdapterUltralytics)),
+            'fake': lambda:
+                FakeDetector()
+        }
+
+        if adapter_name not in config:
+            raise ValueError(f"Unsupported adapter: {adapter_name}")
+
+        return config[adapter_name]()
 
 
+# need testing of batch processing implementation
 class VehicleDetectorOpenCV(Detector):
     """
-    vehicle detection
+    A class for performing vehicle detection using OpenCV's deep learning module.
     """
 
     def __init__(self, format_load, paths, param_detect, adapter):
@@ -113,66 +146,135 @@ class VehicleDetectorOpenCV(Detector):
         else:
             raise ValueError('Incorrect format load.')
 
-    def detect(self, image):
+    def detect(self, images: list[np.ndarray]):
         # Pre-process image using the adapter
-        image_prepared = self.adapter.pre_processing(image,
-                                                     size=self.size,
-                                                     mean=self.mean,
-                                                     scalefactor=self.scale,
-                                                     swapRB=self.swap_rb)
-        # Convert preprocessed image to blob
-        blob = cv.dnn.blobFromImage(image_prepared)
+        start_time = time.time()
+        image_transformed = self.adapter.pre_processing(images,
+                                                        scalefactor=self.scale,
+                                                        size=self.size,
+                                                        mean=self.mean,
+                                                        swapRB=self.swap_rb)
+        blobs = cv.dnn.blobFromImages(image_transformed)
+        preproc_time = time.time() - start_time
 
         # Perform inference
-        self.model.setInput(blob)
-        boxes = self.model.forward()
+        start_time = time.time()
+        self.model.setInput(blobs)
+        outputs = self.model.forward()
+        inference_time = time.time() - start_time
 
         # Post-process the detections using the adapter
-        image_height, image_width, _ = image.shape
-        return self.adapter.post_processing(boxes, image_width, image_height)
+        start_time = time.time()
+        image_sizes = [(img.shape[1], img.shape[0]) for img in images]  # (width, height)
+        detections = self.adapter.post_processing(outputs, image_sizes)
+        postproc_time = time.time() - start_time
+
+        return detections, preproc_time, inference_time, postproc_time
 
 
-class VehicleDetectorFasterRCNN(Detector):
+class VehicleDetectorTorchvision(Detector, ABC):
     """
-    Vehicle detector based on Faster R-CNN using a pre-trained PyTorch model.
+    A class for performing vehicle detection using Torchvision models.
     """
 
-    def __init__(self, param_detect, adapter):
-        """
-        Initializes the Faster R-CNN vehicle detector.
-
-        :param class_names: List of class names to be detected (e.g., ['car', 'bus']).
-        :param conf_threshold: Confidence threshold for detections.
-        :param nms_threshold: Non-Maximum Suppression (NMS) threshold.
-        """
+    def __init__(self, paths, param_detect, adapter):
         super().__init__(param_detect, adapter)
-        self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-            weights=torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
-        self.model.eval()  # Set the model to evaluation mode
+        if paths['path_weights'] == 'FasterRCNN_ResNet50_FPN_Weights.COCO_V1':
+            self.model = detection.fasterrcnn_resnet50_fpn(
+                weights=detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1)
+        elif paths['path_weights'] == 'FCOS_ResNet50_FPN_Weights.COCO_V1':
+            self.model = detection.fcos_resnet50_fpn(
+                weights=detection.FCOS_ResNet50_FPN_Weights.COCO_V1)
+        elif paths['path_weights'] == 'RetinaNet_ResNet50_FPN_V2_Weights.COCO_V1':
+            self.model = detection.retinanet_resnet50_fpn_v2(
+                weights=detection.RetinaNet_ResNet50_FPN_V2_Weights.COCO_V1)
+        elif paths['path_weights'] == 'SSD300_VGG16_Weights.COCO_V1':
+            self.model = detection.ssd300_vgg16(
+                weights=detection.SSD300_VGG16_Weights.COCO_V1)
+        elif paths['path_weights'] == 'SSDLite320_MobileNet_V3_Large_Weights.COCO_V1':
+            self.model = detection.ssdlite320_mobilenet_v3_large(
+                weights=detection.SSDLite320_MobileNet_V3_Large_Weights.COCO_V1)
+        else:
+            raise ValueError('Incorrect path to weights in VehicleDetectorTorchvision.')
 
-    def detect(self, image: np.ndarray):
+        self.model.eval()
+
+    def detect(self, images: list[np.ndarray]):
         """
         Performs object detection on the input image.
 
-        :param image: Input image as a NumPy array.
+        :param images: Input list of images (image is a NumPy array).
         :return: List of detections in the format [class, x1, y1, x2, y2, confidence].
         """
-        # Pre-process image using the adapter
-        image_transformed = self.adapter.pre_processing(image)
+        # Pre-process
+        start_time = time.time()
+        image_tensors = self.adapter.pre_processing(images)
+        preproc_time = time.time() - start_time
 
-        # Perform inference
+        # Inference
+        start_time = time.time()
         with torch.no_grad():
-            outputs = self.model(image_transformed)
+            outputs = self.model(image_tensors)
+        inference_time = time.time() - start_time
 
-        # Post-process the detections using the adapter
-        image_height, image_width, _ = image.shape
-        return self.adapter.post_processing(outputs, image_width, image_height)
+        # post-processing
+        start_time = time.time()
+        image_sizes = [(img.shape[1], img.shape[0]) for img in images]  # (width, height)
+        detections = self.adapter.post_processing(outputs, image_sizes)
+        postproc_time = time.time() - start_time
+
+        return detections, preproc_time, inference_time, postproc_time
+
+
+class VehicleDetectorUltralytics(Detector):
+    """
+    Vehicle detector based on YOLO and RTDETR ONNX using the Ultralytics API.
+    """
+
+    def __init__(self, paths, param_detect, adapter):
+        """
+        :param param_detect: Dictionary with detection parameters.
+        :param adapter: Adapter for pre/post-processing.
+        """
+        super().__init__(param_detect, adapter)
+        if 'yolo' in paths['path_weights']:
+            self.model = YOLO(paths['path_weights'])
+        elif 'rtdetr' in paths['path_weights']:
+            self.model = RTDETR(paths['path_weights'])
+        else:
+            raise ValueError("VehicleDetectorUltralytics invalid path_weights")
+
+    def detect(self, images: list[np.ndarray]):
+        """
+        Performs object detection on the input images using YOLOv8.
+
+        :param images: List of input images (BGR numpy arrays).
+        :return: Tuple (detections, preproc_time, inference_time, postproc_time)
+        """
+        # Pre-processing
+        start_time = time.time()
+        preprocessed = self.adapter.pre_processing(images,
+                                                  size=self.size)
+        preproc_time = time.time() - start_time
+
+        # Inference
+        start_time = time.time()
+        results = self.model(preprocessed)
+        inference_time = time.time() - start_time
+
+        # Post-processing
+        start_time = time.time()
+        image_sizes = [(img.shape[1], img.shape[0]) for img in images]
+        detections = self.adapter.post_processing(results, image_sizes)
+        postproc_time = time.time() - start_time
+
+        return detections, preproc_time, inference_time, postproc_time
 
 
 class FakeDetector(Detector):
     """
     Testing detector generating random bounding boxes.
-    
+
     Generates 0-7 random vehicle boxes per image with:
     - Random vehicle classes (car/bus/truck)
     - Random valid positions within image bounds
@@ -182,8 +284,8 @@ class FakeDetector(Detector):
     def __init__(self,
                  seed: int = None,
                  time_ranges: tuple[tuple[float, float]] = ((0.01, 0.05),
-                                                          (0.08, 0.3),
-                                                          (0.01, 0.1))):
+                                                            (0.08, 0.3),
+                                                            (0.01, 0.1))):
         """
         Initialize fake detector with controlled randomness.
 
@@ -195,11 +297,11 @@ class FakeDetector(Detector):
         self.classes = ["car", "bus", "truck"]
         super().__init__(None, None)
 
-    def detect(self, image: list[np.ndarray]):
+    def detect(self, images: list[np.ndarray]):
         """
         Process batch of images with simulated detection pipeline.
-        
-        :param image: List of numpy arrays (HWC images)
+
+        :param images: List of numpy arrays (HWC images)
         :return: Tuple containing:
             - List of detections per image
             - Preprocessing time
@@ -211,7 +313,7 @@ class FakeDetector(Detector):
         postproc = self.rand.uniform(*self.time_ranges[2])
 
         batch_detections = []
-        for frame in image:
+        for frame in images[0]:
             if frame is None or frame.size == 0:
                 batch_detections.append([])
                 continue
@@ -225,10 +327,10 @@ class FakeDetector(Detector):
 
             for _ in range(self.rand.randint(0, 5)):
                 try:
-                    x1 = self.rand.randint(0, width-2)
-                    x2 = self.rand.randint(x1+1, width-1)
-                    y1 = self.rand.randint(0, height-2)
-                    y2 = self.rand.randint(y1+1, height-1)
+                    x1 = self.rand.randint(0, width - 2)
+                    x2 = self.rand.randint(x1 + 1, width - 1)
+                    y1 = self.rand.randint(0, height - 2)
+                    y2 = self.rand.randint(y1 + 1, height - 1)
                 except ValueError:
                     continue
 

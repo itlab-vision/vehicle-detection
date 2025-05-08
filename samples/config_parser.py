@@ -4,6 +4,7 @@ parsing a yaml file
 from pathlib import Path
 import yaml
 
+
 def check_param_paths(parameters):
     """
     checking path parameters
@@ -18,28 +19,29 @@ def check_param_paths(parameters):
     if parameters.get('path_config') is None:
         parameters.update({'path_config' : None})
 
+    if parameters.get('path_anchors') is None:
+        parameters.update({'path_anchors': None})
+
     return parameters
+
 
 def check_param_adapter(parameters):
     """
     checking adapter parameters
     :return: parameters
     """
-    list_adapter = ['AdapterYOLO', 'AdapterYOLOTiny', 'AdapterDetectionTask', 'AdapterFasterRCNN']
-    if parameters.get('adapter_name') not in list_adapter:
-        raise ValueError('The adapter is specified incorrectly')
-
     if parameters.get('confidence') is None:
-        parameters.update({'confidence' : 0.3})
+        parameters.update({'confidence': 0.3})
     else:
         parameters['confidence'] = float(parameters['confidence'])
 
     if parameters.get('nms_threshold') is None:
-        parameters.update({'nms_threshold' : 0.4})
+        parameters.update({'nms_threshold': 0.4})
     else:
         parameters['nms_threshold'] = float(parameters['nms_threshold'])
 
     return parameters
+
 
 def check_param_detector(parameters):
     """
@@ -67,6 +69,7 @@ def check_param_detector(parameters):
         parameters['swapRB'] = bool(parameters['swapRB'])
 
     return parameters
+
 
 def parse_yaml_file(yaml_file):
     """
@@ -113,8 +116,9 @@ def parse_yaml_file(yaml_file):
 
     list_arg = ['mode', 'image', 'video', 'images_path', 'video_path', 'model_name',
                 'path_classes', 'path_weights', 'path_config', 'confidence',
-                  'nms_threshold', 'scale', 'size', 'mean', 'swapRB', 
-                  'groundtruth_path', 'write_path', 'silent_mode', 'adapter_name']
+                'nms_threshold', 'scale', 'size', 'mean', 'swapRB',
+                'groundtruth_path', 'write_path', 'batch_size', 'silent_mode', 'adapter_name',
+                'path_anchors']
 
     entered_arg = parameters.keys()
 

@@ -31,22 +31,6 @@ class BatchesTimings:
 
 
 @dataclass
-class BatchesTimings():
-    """Data structure for storing batch processing timing metrics.
-    
-    Attributes:
-        preprocess_time (List[float]): 
-            List of preprocessing durations (in seconds) for each batch
-        inference_time (List[float]): 
-            List of model inference durations (in seconds) for each batch
-        postprocess_time (List[float]): 
-            List of postprocessing durations (in seconds) for each batch
-    """
-    preprocess_time: list[float]
-    inference_time: list[float]
-    postprocess_time: list[float]
-
-@dataclass
 class PipelineComponents:
     """Container class for essential pipeline components.
 
@@ -84,16 +68,16 @@ class DetectionPipeline:
             raise ValueError("Missing pipeline components")
 
         self.components = components
-        self.batches_timings = BatchesTimings([], [], [])
         self.gtboxes = {}
-        self.batch_size = 1
+        self.batches_timings = BatchesTimings([], [], [])
         self.current_batch_start_idx = 0
+        self.batch_size = 1
         self.total_batches = 0
 
     def run(self):
         """
         Execute the main processing loop.
-        
+
         Workflow:
         1. Initialize data sources and visualization
         2. Process frames in batches
@@ -151,7 +135,7 @@ class DetectionPipeline:
             self.batches_timings.inference_time.append(inference_time)
             self.batches_timings.postprocess_time.append(postproc_time)
 
-        self.components.visualizer.batch_start(
+        self.components.visualizer.batch_metrics(
             batch_idx, preproc_time,
             inference_time, postproc_time
         )
@@ -190,7 +174,6 @@ class DetectionPipeline:
     def _handle_error(self, error: Exception):
         """
         Handle pipeline errors and clean up resources.
-
         :param error: Caught exception during processing
         """
         if self.components.writer:
@@ -206,7 +189,7 @@ class DetectionPipeline:
         """
         Internal method: Transform groundtruth data into frame-indexed dictionary.
 
-        :param gt_data: List of groundtruth entries in format 
+        :param gt_data: List of groundtruth entries in format
                     [frame_index, label, x1, y1, x2, y2]
 
         :return dict: Dictionary mapping frame indices to their groundtruth boxes

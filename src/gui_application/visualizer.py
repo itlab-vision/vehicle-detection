@@ -23,9 +23,10 @@ class BaseVisualizer(ABC):
         """
 
     @abstractmethod
-    def batch_start(self, batch_idx: int, preproc_time: float,
-                  inference_time: float, postproc_time: float):
-        """Handle batch processing start.
+    def batch_metrics(self, batch_idx: int, preproc_time: float,
+                      inference_time: float, postproc_time: float):
+        """
+        Handle batch processing start.
 
         :param batch_idx: Current batch index
         :param preproc_time: Batch preprocessing time in seconds
@@ -38,8 +39,8 @@ class BaseVisualizer(ABC):
         """Handle batch processing completion."""
 
     @abstractmethod
-    def visualize_frame(self, frame_idx:int, frame: numpy.ndarray,
-                     detections: list[tuple], ground_truth: list[tuple]):
+    def visualize_frame(self, frame_idx: int, frame: numpy.ndarray,
+                        detections: list[tuple], ground_truth: list[tuple]):
         """
         RVisualize detection results on a single frame.
 
@@ -97,6 +98,7 @@ class GUIVisualizer(BaseVisualizer):
         """
         Initialize visualization components with data sources.
         """
+        self.fp = 4
         self.start_time = time.time()
         self.window_name = "Vehicle Detection Output"
         self.current_batch = 0
@@ -121,10 +123,11 @@ class GUIVisualizer(BaseVisualizer):
             position=0
         )
 
+
         cv.namedWindow(self.window_name, cv.WINDOW_NORMAL)
 
-    def batch_start(self, batch_idx: int, preproc_time: float,
-                  inference_time: float, postproc_time: float):
+    def batch_metrics(self, batch_idx: int, preproc_time: float,
+                      inference_time: float, postproc_time: float):
         """Record batch processing metrics."""
         self.current_batch = batch_idx
         self.processing_times.update({
@@ -133,13 +136,12 @@ class GUIVisualizer(BaseVisualizer):
             'postproc': postproc_time
         })
 
-
     def batch_end(self):
         """Update progress display."""
         self.progress_bar.update(1)
 
-    def visualize_frame(self, frame_idx:int, frame: numpy.ndarray,
-                     detections: list[tuple], ground_truth: list[tuple]):
+    def visualize_frame(self, frame_idx: int, frame: numpy.ndarray,
+                        detections: list[tuple], ground_truth: list[tuple]):
         """Render frame with bounding boxes and text annotations."""
         self._draw_processing_info(frame_idx, frame)
 
@@ -169,18 +171,18 @@ class GUIVisualizer(BaseVisualizer):
             label += f" {confidence[0]:.2f}"
 
         cv.putText(frame, label, (x1, y1 - 5),
-                 cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-    def _draw_processing_info(self, frame_idx:int, frame: numpy.ndarray):
+    def _draw_processing_info(self, frame_idx: int, frame: numpy.ndarray):
         """Draw processing metadata on frame."""
         info_text = (
             f"Batch: {self.current_batch} | Frame: {frame_idx} | "
-            f"Pre: {self.processing_times['preproc']:.2f}s | "
-            f"Inference: {self.processing_times['inference']:.2f}s | "
-            f"Post: {self.processing_times['postproc']:.2f}s"
+            f"Pre: {self.processing_times['preproc']:.{self.fp}f}s | "
+            f"Inference: {self.processing_times['inference']:.{self.fp}f}s | "
+            f"Post: {self.processing_times['postproc']:.{self.fp}f}s"
         )
         cv.putText(frame, info_text, (10, 20),
-                 cv.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     def check_exit(self):
         """Check for Q key press to terminate visualization."""
@@ -196,7 +198,7 @@ class GUIVisualizer(BaseVisualizer):
 
 class CLIVisualizer(BaseVisualizer):
     """Command-line visualization with textual output and statistics.
-    
+
     Features:
     - Frame-by-frame detection reports
     - Processing statistics (FPS, ETA)
@@ -219,8 +221,8 @@ class CLIVisualizer(BaseVisualizer):
         self.total_batches = total_batches
         print(f"Starting processing of {total_batches} batches")
 
-    def batch_start(self, batch_idx:int, preproc_time: float,
-                  inference_time: float, postproc_time: float):
+    def batch_metrics(self, batch_idx: int, preproc_time: float,
+                    inference_time: float, postproc_time: float):
         """Record batch metrics."""
         self.current_batch = batch_idx
         self.processing_times.update({
@@ -244,7 +246,7 @@ class CLIVisualizer(BaseVisualizer):
         )
 
     def visualize_frame(self, frame_idx: int, frame: numpy.ndarray,
-                     detections: list, ground_truth: list = None):
+                        detections: list, ground_truth: list = None):
         """Print frame detection details to console."""
 
         print(f"\tFrame {frame_idx}:")
